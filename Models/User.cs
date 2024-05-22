@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
 
 namespace MyApp.Models
 {
@@ -19,6 +20,7 @@ namespace MyApp.Models
         public ICollection<ViewHistory> ViewHistories { get; set; }
         public ICollection<Cart> Carts { get; set; }
         public ICollection<Payment> Payments { get; set; }
+        public Role Role { get; set; }
     }
 
 }

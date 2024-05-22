@@ -24,6 +24,11 @@ namespace MyApp.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Role>().HasData(
+                new Role { RoleId = 1, RoleName = "User" },
+                new Role { RoleId = 2, RoleName = "Admin" }
+            );
+
             modelBuilder.Entity<Payment>()
             .HasOne(p => p.PromoCode)
             .WithMany(pc => pc.Payments)
