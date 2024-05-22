@@ -13,6 +13,8 @@ namespace MyApp.Models
 
         public User User { get; set; }
         public Order Order { get; set; }
+        public int? PromoId { get; set; }
+        public PromoCode PromoCode { get; set; }
     }
 
 }

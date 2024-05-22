@@ -24,6 +24,12 @@ namespace MyApp.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Payment>()
+            .HasOne(p => p.PromoCode)
+            .WithMany(pc => pc.Payments)
+            .HasForeignKey(p => p.PromoId)
+            .IsRequired(false);
+
             //modelBuilder.Entity<Order>()
             //.HasOne(o => o.Payment)
             //.WithOne(p => p.Order)
