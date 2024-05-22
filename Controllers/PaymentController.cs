@@ -1,13 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
 using MyApp.Dto;
 using MyApp.Interfaces;
 using MyApp.Models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MyApp.Controllers
 {
