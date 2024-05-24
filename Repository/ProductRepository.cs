@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
+using MyApp.Dto;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -8,9 +10,11 @@ namespace MyApp.Repository
     public class ProductRepository : IProductRepository
     {
         private readonly ApplicationDbContext _context;
-        public ProductRepository(ApplicationDbContext context)
+        private readonly IMapper _mapper;
+        public ProductRepository(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<IEnumerable<Product>> GetProductsAsync()
@@ -20,12 +24,12 @@ namespace MyApp.Repository
 
         public async Task<Product> GetProductByIdAsync(int id)
         {
-            return await _context.Products.FindAsync(id);
+            return await _context.Products.Where(p => p.Id == id).FirstOrDefaultAsync();
         }
 
         public async Task<Product> GetProductAsync(string productName)
         {
-            return await _context.Products.Where(p=>p.Name==productName).FirstOrDefaultAsync();
+            return await _context.Products.Where(p => p.Name == productName).FirstOrDefaultAsync();
         }
 
         public async Task<decimal> GetProductRatingAsync(int id)
@@ -34,37 +38,54 @@ namespace MyApp.Repository
                                         .Where(p => p.Product.Id == id)
                                         .ToListAsync();
 
-            if (!reviews.Any())
+            if (!reviews.Any()) 
                 return 0;
 
             return (decimal)reviews.Sum(r => r.Rating) / reviews.Count();
         }
 
-        public async Task AddProductAsync(Product product)
+        public async Task<bool> AddProductAsync(int categoryId, Product product)
         {
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateProductAsync(Product product)
-        {
-            _context.Entry(product).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeleteProductAsync(int id)
-        {
-            var product = await _context.Products.FindAsync(id);
-            if (product != null)
+            var category = await _context.Categories.Where(a => a.Id == categoryId).FirstOrDefaultAsync();
+           
+            var productCategory = new ProductCategory()
             {
-                _context.Products.Remove(product);
-                await _context.SaveChangesAsync();
-            }
+                Category = category,
+                Product = product,
+            };
+
+            _context.Add(productCategory);
+            _context.Add(product);
+
+            return await Save();
         }
 
-        public async Task<bool> ProductExistsAsync(int id)
+        public async Task<bool> UpdateProductAsync(int catId, Product product)
         {
-            return await _context.Products.AnyAsync(p => p.Id == id);
+            _context.Update(product);
+            return await Save();
+        }
+
+        public async Task<bool> DeleteProductAsync(Product product)
+        {
+            _context.Remove(product);
+            return await Save();
+        }
+
+        public async Task<bool> ProductExistsAsync(int prodId)
+        {
+            return await _context.Products.AnyAsync(p => p.Id == prodId);
+        }
+
+        public async Task<bool> Save()
+        {
+            var saved = await _context.SaveChangesAsync();
+            return saved > 0;
+        }
+        public async Task<Product> GetProductTrimToUpperAsync(ProductDto productCreate)
+        {
+            var products = await GetProductsAsync();
+            return products.Where(c => c.Name.Trim().ToUpper() == productCreate.Name.TrimEnd().ToUpper()).FirstOrDefault();
         }
     }
 }

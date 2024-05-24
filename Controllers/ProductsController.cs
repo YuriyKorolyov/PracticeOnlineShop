@@ -11,68 +11,136 @@ namespace MyApp.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IProductRepository _productRepository;
+        private readonly IReviewRepository _reviewRepository;
         private readonly IMapper _mapper;
 
-        public ProductsController(IProductRepository productRepository, IMapper mapper)
+        public ProductsController(IProductRepository productRepository, IReviewRepository reviewRepository, IMapper mapper)
         {
             _productRepository = productRepository;
+            _reviewRepository = reviewRepository;
             _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
         {
-            var products = await _productRepository.GetProductsAsync();
-            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            var productDtos = _mapper.Map<List<ProductDto>>(await _productRepository.GetProductsAsync());
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             return Ok(productDtos);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ProductDto>> GetProduct(int id)
+        [HttpGet("{prodId}")]
+        public async Task<ActionResult<ProductDto>> GetProduct(int prodId)
         {
-            var product = await _productRepository.GetProductByIdAsync(id);
-            if (product == null)
-            {
+            if (! await _productRepository.ProductExistsAsync(prodId))
                 return NotFound();
-            }
-            var productDto = _mapper.Map<ProductDto>(product);
-            return Ok(productDto);
+
+            var product = _mapper.Map<ProductDto>(_productRepository.GetProductByIdAsync(prodId));
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            return Ok(product);
         }
 
 
-        [HttpGet("{id}/rating")]
-        public async Task<ActionResult<decimal>> GetProductRating(int id)
+        [HttpGet("{prodId}/rating")]
+        public async Task<ActionResult<decimal>> GetProductRating(int prodId)
         {
-            var rating = await _productRepository.GetProductRatingAsync(id);
+            if (! await _productRepository.ProductExistsAsync(prodId))
+                return NotFound();
+
+            var rating = await _productRepository.GetProductRatingAsync(prodId);
+
+            if (!ModelState.IsValid)
+                return BadRequest();
+
             return Ok(rating);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProductDto>> PostProduct(ProductDto productDto)
+        public async Task<ActionResult<ProductDto>> PostProduct([FromQuery] int catId, [FromBody] ProductDto productDto)
         {
-            var product = _mapper.Map<Product>(productDto);
-            await _productRepository.AddProductAsync(product);
+            if (productDto == null)
+                return BadRequest(ModelState);
 
-            var createdProductDto = _mapper.Map<ProductDto>(product);
-            return CreatedAtAction(nameof(GetProduct), new { id = createdProductDto.Id }, createdProductDto);   
+            var product = _productRepository.GetProductTrimToUpperAsync(productDto);
+
+            if (product != null)
+            {
+                ModelState.AddModelError("", "Product already exists");
+                return StatusCode(422, ModelState);
+            }
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var productMap = _mapper.Map<Product>(productDto);
+            if (!await _productRepository.AddProductAsync(catId, productMap))
+            {
+                ModelState.AddModelError("", "Something went wrong while saving");
+                return StatusCode(500, ModelState);
+            }
+
+            var createdProductDto = _mapper.Map<ProductDto>(productMap);
+            return CreatedAtAction(nameof(GetProduct), new { id = createdProductDto.Id }, createdProductDto);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutProduct(int id, ProductDto productDto)
+        [HttpPut("{prodId}")]
+        public async Task<IActionResult> PutProduct(int prodId, [FromQuery] int catId, [FromBody] ProductDto productDto)
         {
-            if (id != productDto.Id)
+            if (productDto == null)
+                return BadRequest(ModelState);
+
+            if (prodId != productDto.Id)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
+
+            if (! await _productRepository.ProductExistsAsync(prodId))
+                return NotFound();
+
+            if (!ModelState.IsValid)
+                return BadRequest();
+
             var product = _mapper.Map<Product>(productDto);
-            await _productRepository.UpdateProductAsync(product);
+
+            if (! await _productRepository.UpdateProductAsync(catId, product))
+            {
+                ModelState.AddModelError("", "Something went wrong updating product");
+                return StatusCode(500, ModelState);
+            }
+
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(int id)
+        [HttpDelete("{prodId}")]
+        public async Task<IActionResult> DeleteProduct(int prodId)
         {
-            await _productRepository.DeleteProductAsync(id);
+            if (! await _productRepository.ProductExistsAsync(prodId))
+            {
+                return NotFound();
+            }
+
+            var reviewsToDelete = await _reviewRepository.GetReviewsOfAProductAsync(prodId);
+            var productToDelete = await _productRepository.GetProductByIdAsync(prodId);
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (! await _reviewRepository.DeleteReviewsAsync(reviewsToDelete.ToList()))
+            {
+                ModelState.AddModelError("", "Something went wrong when deleting reviews");
+            }
+
+            if (! await _productRepository.DeleteProductAsync(productToDelete))
+            {
+                ModelState.AddModelError("", "Something went wrong deleting product");
+            }
+
             return NoContent();
         }       
     }

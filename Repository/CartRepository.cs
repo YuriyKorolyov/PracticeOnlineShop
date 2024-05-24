@@ -14,13 +14,13 @@ namespace MyApp.Repository
             _context = context;
         }
 
-        public async Task AddToCart(Cart cart)
+        public async Task AddToCartAsync(Cart cart)
         {
             _context.Carts.Add(cart);
             await _context.SaveChangesAsync();
         }
 
-        public async Task ClearCart(int userId)
+        public async Task ClearCartAsync(int userId)
         {
             var cartsToRemove = await _context.Carts
                                           .Where(cart => cart.User.Id == userId)
@@ -32,12 +32,12 @@ namespace MyApp.Repository
             }
         }
 
-        public async Task<IEnumerable<Cart>> GetCartsByUserId(int userId)
+        public async Task<IEnumerable<Cart>> GetCartsByUserIdAsync(int userId)
         {
             return await _context.Carts.Where(cart => cart.User.Id == userId).ToListAsync();
         }
 
-        public async Task RemoveFromCart(int cartId)
+        public async Task RemoveFromCartAsync(int cartId)
         {
             var cart = await _context.Carts.FindAsync(cartId);
             if (cart != null)
@@ -47,7 +47,7 @@ namespace MyApp.Repository
             }
         }
 
-        public async Task UpdateCart(Cart cart)
+        public async Task UpdateCartAsync(Cart cart)
         {
             _context.Carts.Update(cart);
             await _context.SaveChangesAsync();

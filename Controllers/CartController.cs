@@ -45,7 +45,7 @@ namespace MyApp.Controllers
         [HttpGet("{userId}")]
         public async Task<ActionResult<IEnumerable<CartDto>>> GetCartsByUserId(int userId)
         {
-            var carts = await _cartRepository.GetCartsByUserId(userId);
+            var carts = await _cartRepository.GetCartsByUserIdAsync(userId);
             var cartDtos = _mapper.Map<IEnumerable<CartDto>>(carts);
             return Ok(cartDtos);
         }
@@ -54,7 +54,7 @@ namespace MyApp.Controllers
         public async Task<ActionResult<CartDto>> AddToCart(int UserId, CartDto cartDto)
         {
             var cart = _mapper.Map<Cart>(cartDto);
-            await _cartRepository.AddToCart(cart);
+            await _cartRepository.AddToCartAsync(cart);
 
             var createdCartDto = _mapper.Map<CartDto>(cart);
             return CreatedAtAction(nameof(GetCartsByUserId), new { userId = UserId }, createdCartDto);
@@ -63,22 +63,22 @@ namespace MyApp.Controllers
         [HttpDelete("{userId}/{productId}")]
         public async Task<IActionResult> RemoveFromCart(int cartId)
         {
-            await _cartRepository.RemoveFromCart(cartId);
+            await _cartRepository.RemoveFromCartAsync(cartId);
             return NoContent();
         }
 
         [HttpDelete("{userId}/clear")]
         public async Task<IActionResult> ClearCart(int userId)
         {
-            await _cartRepository.ClearCart(userId);
+            await _cartRepository.ClearCartAsync(userId);
             return NoContent();
         }
 
         [HttpPut("{userId}/{productId}")]
-        public async Task<IActionResult> UpdateCart(int userId, int productId, CartDto cartDto)
+        public async Task<IActionResult> UpdateCart([FromQuery] int userId, [FromQuery] int productId, [FromBody] CartDto cartDto)
         {
             var cart = _mapper.Map<Cart>(cartDto);
-            await _cartRepository.UpdateCart(cart);
+            await _cartRepository.UpdateCartAsync(cart);
 
             return NoContent();
         }

@@ -9,63 +9,107 @@ using MyApp.Models;
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IMapper _mapper;
 
-    public UsersController(IUserRepository userRepository, IMapper mapper)
+    public UsersController(IUserRepository userRepository, IRoleRepository roleRepository, IMapper mapper)
     {
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
         _mapper = mapper;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
     {
-        var users = await _userRepository.GetUsersAsync();
-        var userDtos = _mapper.Map<IEnumerable<UserDto>>(users);
+        var userDtos = _mapper.Map<IEnumerable<UserDto>>(await _userRepository.GetUsersAsync());
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         return Ok(userDtos);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<UserDto>> GetUser(int id)
+    [HttpGet("{userId}")]
+    public async Task<ActionResult<UserDto>> GetUser(int userId)
     {
-        var user = await _userRepository.GetUserByIdAsync(id);
-        if (user == null)
-        {
+        if (! await _userRepository.UserExistsAsync(userId))
             return NotFound();
-        }
-        var userDto = _mapper.Map<UserDto>(user);
+
+        var userDto = _mapper.Map<UserDto>(await _userRepository.GetUserByIdAsync(userId));
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         return Ok(userDto);
     }
 
     [HttpPost]
-    public async Task<ActionResult<UserDto>> PostUser(UserDto userDto)
+    public async Task<ActionResult<UserDto>> PostUser([FromQuery] int roleId, [FromBody] UserDto userDto)
     {
-        if (!ModelState.IsValid)
-        {
+        if (userDto == null)
             return BadRequest(ModelState);
-        }
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+        
         var user = _mapper.Map<User>(userDto);
-        await _userRepository.AddUserAsync(user);
+        user.Role = await _roleRepository.GetRoleByIdAsync(roleId);
+
+        if (! await _userRepository.AddUserAsync(user))
+        {
+            ModelState.AddModelError("", "Something went wrong while saving");
+            return StatusCode(500, ModelState);
+        }
+
         var createdUserDto = _mapper.Map<UserDto>(user);
-        return CreatedAtAction(nameof(GetUser), new { id = createdUserDto.Id }, createdUserDto);
+        return CreatedAtAction(nameof(GetUser), new { userId = createdUserDto.Id }, createdUserDto);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutUser(int id, UserDto userDto)
+    [HttpPut("{userId}")]
+    public async Task<IActionResult> PutUser(int userId, [FromBody] UserDto userDto)
     {
-        if (id != userDto.Id)
-        {
+        if (userDto == null)
+            return BadRequest(ModelState);
+
+        if (userId != userDto.Id)
+            return BadRequest(ModelState);
+
+        if (! await _userRepository.UserExistsAsync(userId))
+            return NotFound();
+
+        if (!ModelState.IsValid)
             return BadRequest();
-        }
+
         var user = _mapper.Map<User>(userDto);
-        await _userRepository.UpdateUserAsync(user);
+
+        if (! await _userRepository.UpdateUserAsync(user))
+        {
+            ModelState.AddModelError("", "Something went wrong updating user");
+            return StatusCode(500, ModelState);
+        }
+
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(int id)
+    [HttpDelete("{userId}")]
+    public async Task<IActionResult> DeleteUser(int userId)
     {
-        await _userRepository.DeleteUserAsync(id);
+        if (! await _userRepository.UserExistsAsync(userId))
+        {
+            return NotFound();
+        }
+
+        var userToDelete = await _userRepository.GetUserByIdAsync(userId);
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        if (! await _userRepository.DeleteUserAsync(userToDelete))
+        {
+            ModelState.AddModelError("", "Something went wrong deleting user");
+        }
+
         return NoContent();
     }
 }

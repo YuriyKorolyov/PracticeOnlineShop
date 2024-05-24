@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
+using MyApp.Dto;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -16,39 +18,46 @@ namespace MyApp.Repository
 
         public async Task<IEnumerable<User>> GetUsersAsync()
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users.Include(u => u.Role).ToListAsync();
+            //return await _context.Users.ToListAsync();
         }
 
-        public async Task<User> GetUserByIdAsync(int id)
+        public async Task<User> GetUserByIdAsync(int userId)
         {
-            return await _context.Users.FindAsync(id);
+            return await _context.Users.Where(o => o.Id == userId).FirstOrDefaultAsync();
         }
 
-        public async Task AddUserAsync(User user)
+        public async Task<bool> AddUserAsync(User user)
         {
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
+            await _context.AddAsync(user);
+            return await Save();
         }
 
-        public async Task UpdateUserAsync(User user)
+        public async Task<bool> UpdateUserAsync(User user)
         {
             _context.Entry(user).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            return await Save();
         }
 
-        public async Task DeleteUserAsync(int id)
+        public async Task<bool> DeleteUserAsync(User user)
         {
-            var user = await _context.Users.FindAsync(id);
-            if (user != null)
-            {
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
-            }
+            _context.Remove(user);
+            return await Save();
         }
 
-        public async Task<bool> UserExistsAsync(int id)
+        public async Task<bool> UserExistsAsync(int userId)
         {
-            return await _context.Users.AnyAsync(u => u.Id == id);
+            return await _context.Users.AnyAsync(u => u.Id == userId);
+        }
+
+        public async Task<IEnumerable<Review>> GetReviewsByUserAsync(int reviewerId)
+        {
+            return await _context.Reviews.Where(r => r.User.Id == reviewerId).ToListAsync();
+        }
+        public async Task<bool> Save()
+        {
+            var saved = await _context.SaveChangesAsync();
+            return saved > 0;
         }
     }
 }

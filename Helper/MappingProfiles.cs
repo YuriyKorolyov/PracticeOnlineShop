@@ -8,14 +8,14 @@ namespace MyApp.Helper
     {
         public MappingProfiles()
         {
-            CreateMap<Product, ProductDto>();
-            CreateMap<ProductDto, Product>();
-            CreateMap<User, UserDto>();
-            CreateMap<UserDto, User>();
-            CreateMap<Category, CategoryDto>();
-            CreateMap<CategoryDto, Category>();
-            CreateMap<CartDto, Cart>();
-            CreateMap<Cart,  CartDto>();
+            CreateMap<Product, ProductDto>().ReverseMap();
+            CreateMap<User, UserDto>().ReverseMap();
+            CreateMap<Role, RoleDto>().ReverseMap();
+            CreateMap<Category, CategoryDto>().ReverseMap();
+            CreateMap<Cart,  CartDto>().ReverseMap();
+            CreateMap<Order, OrderDto>().ReverseMap();
+            CreateMap<Payment, PaymentDto>().ReverseMap();
+            CreateMap<Review, ReviewDto>().ReverseMap();
         }
     }
 }

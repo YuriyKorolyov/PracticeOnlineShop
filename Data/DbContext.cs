@@ -19,15 +19,22 @@ namespace MyApp.Data
         public DbSet<ViewHistory> ViewHistories { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<ProductCategory> ProductCategories { get; set; }
+        public DbSet<Role> Roles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Role>().HasData(
-                new Role { RoleId = 1, RoleName = "User" },
-                new Role { RoleId = 2, RoleName = "Admin" }
+                new Role { Id = 1, RoleName = "User" },
+                new Role { Id = 2, RoleName = "Admin" }
             );
+
+           // modelBuilder.Entity<User>()
+           //.HasOne(u => u.Role)
+           //.WithMany(r => r.Users)
+           //.HasForeignKey(u => u.RoleId)
+           //.OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Payment>()
             .HasOne(p => p.PromoCode)
