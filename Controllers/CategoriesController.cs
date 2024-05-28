@@ -7,6 +7,8 @@ using MyApp.Repository;
 
 namespace MyApp.Controllers
 {
+    [Route("api/[controller]")]
+    [ApiController]
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryRepository _categoryRepository;

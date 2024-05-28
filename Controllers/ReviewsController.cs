@@ -6,6 +6,8 @@ using MyApp.Models;
 
 namespace MyApp.Controllers
 {
+    [Route("api/[controller]")]
+    [ApiController]
     public class ReviewsController : ControllerBase
     {
         private readonly IReviewRepository _reviewRepository;
@@ -16,9 +18,9 @@ namespace MyApp.Controllers
         public ReviewsController(IReviewRepository reviewRepository, IMapper mapper, IProductRepository productRepository, IUserRepository userRepository)
         {
             _reviewRepository = reviewRepository;
-            _mapper = mapper;
             _userRepository = userRepository;
             _productRepository = productRepository;
+            _mapper = mapper;            
         }
 
         [HttpGet]
@@ -38,7 +40,7 @@ namespace MyApp.Controllers
             if (! await _reviewRepository.ReviewExistsAsync(reviewId))
                 return NotFound();
 
-            var review = _mapper.Map<ReviewDto>(_reviewRepository.GetReviewByIdAsync(reviewId));
+            var review = _mapper.Map<ReviewDto>(await _reviewRepository.GetReviewByIdAsync(reviewId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -46,7 +48,7 @@ namespace MyApp.Controllers
             return Ok(review);
         }
 
-        [HttpGet("pokemon/{pokeId}")]
+        [HttpGet("product/{prodId}")]
         public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsForAProduct(int prodId)
         {
             var reviews = _mapper.Map<List<ReviewDto>>(await _reviewRepository.GetReviewsOfAProductAsync(prodId));
@@ -63,7 +65,7 @@ namespace MyApp.Controllers
             if (reviewDto == null)
                 return BadRequest(ModelState);
 
-            var reviews = _reviewRepository.GetReviewsTrimToUpperAsync(reviewDto);
+            var reviews = await _reviewRepository.GetReviewsTrimToUpperAsync(reviewDto);
 
             if (reviews != null)
             {
@@ -86,7 +88,7 @@ namespace MyApp.Controllers
             }
 
             var createdReviewDto = _mapper.Map<ReviewDto>(review);
-            return CreatedAtAction(nameof(GetReview), new { id = createdReviewDto.Id }, createdReviewDto);
+            return CreatedAtAction(nameof(GetReview), new { reviewId = createdReviewDto.Id }, createdReviewDto);
         }
 
         [HttpPut("{reviewId}")]
@@ -136,8 +138,8 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
-        [HttpDelete("/DeleteReviewsByUser/{reviewerId}")]
-        public async Task<IActionResult> DeleteReviewsByReviewer(int userId)
+        [HttpDelete("/DeleteReviewsByUser/{userId}")]
+        public async Task<IActionResult> DeleteReviewsByUser(int userId)
         {
             if (! await _userRepository.UserExistsAsync(userId))
                 return NotFound();

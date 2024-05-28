@@ -11,7 +11,7 @@ namespace MyApp.Interfaces
         Task<Product> GetProductByIdAsync(int id);
         Task<bool> ProductExistsAsync(int id);
         Task<bool> AddProductAsync(int categoryID, Product product);
-        Task<bool> UpdateProductAsync(int catId, Product product);
+        Task<bool> UpdateProductAsync(Product product);
         Task<bool> DeleteProductAsync(Product product);
         Task<bool> Save();
         Task<Product> GetProductTrimToUpperAsync(ProductDto productCreate);

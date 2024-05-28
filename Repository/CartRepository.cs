@@ -34,7 +34,11 @@ namespace MyApp.Repository
 
         public async Task<IEnumerable<Cart>> GetCartsByUserIdAsync(int userId)
         {
-            return await _context.Carts.Where(cart => cart.User.Id == userId).ToListAsync();
+            return await _context.Carts
+                         .Include(cart => cart.Product)
+                         .Where(cart => cart.User.Id == userId)
+                         .ToListAsync();
+            //return await _context.Carts.Where(cart => cart.User.Id == userId).ToListAsync();
         }
 
         public async Task RemoveFromCartAsync(int cartId)

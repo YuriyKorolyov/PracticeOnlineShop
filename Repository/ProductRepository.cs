@@ -41,7 +41,7 @@ namespace MyApp.Repository
             if (!reviews.Any()) 
                 return 0;
 
-            return (decimal)reviews.Sum(r => r.Rating) / reviews.Count();
+            return Math.Round((decimal)reviews.Sum(r => r.Rating) / reviews.Count(), 2);
         }
 
         public async Task<bool> AddProductAsync(int categoryId, Product product)
@@ -60,7 +60,7 @@ namespace MyApp.Repository
             return await Save();
         }
 
-        public async Task<bool> UpdateProductAsync(int catId, Product product)
+        public async Task<bool> UpdateProductAsync(Product product)
         {
             _context.Update(product);
             return await Save();

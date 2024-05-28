@@ -24,25 +24,25 @@ namespace MyApp.Repository
 
         public async Task<User> GetUserByIdAsync(int userId)
         {
-            return await _context.Users.Where(o => o.Id == userId).FirstOrDefaultAsync();
+            return await _context.Users.Where(o => o.Id == userId).Include(u => u.Role).FirstOrDefaultAsync();
         }
 
         public async Task<bool> AddUserAsync(User user)
         {
             await _context.AddAsync(user);
-            return await Save();
+            return await SaveAsync();
         }
 
         public async Task<bool> UpdateUserAsync(User user)
         {
             _context.Entry(user).State = EntityState.Modified;
-            return await Save();
+            return await SaveAsync();
         }
 
         public async Task<bool> DeleteUserAsync(User user)
         {
             _context.Remove(user);
-            return await Save();
+            return await SaveAsync();
         }
 
         public async Task<bool> UserExistsAsync(int userId)
@@ -50,11 +50,11 @@ namespace MyApp.Repository
             return await _context.Users.AnyAsync(u => u.Id == userId);
         }
 
-        public async Task<IEnumerable<Review>> GetReviewsByUserAsync(int reviewerId)
+        public async Task<IEnumerable<Review>> GetReviewsByUserAsync(int userId)
         {
-            return await _context.Reviews.Where(r => r.User.Id == reviewerId).ToListAsync();
+            return await _context.Reviews.Where(r => r.User.Id == userId).ToListAsync();
         }
-        public async Task<bool> Save()
+        public async Task<bool> SaveAsync()
         {
             var saved = await _context.SaveChangesAsync();
             return saved > 0;

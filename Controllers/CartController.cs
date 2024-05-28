@@ -12,35 +12,17 @@ namespace MyApp.Controllers
     public class CartController : ControllerBase
     {
         private readonly ICartRepository _cartRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
-        public CartController(ICartRepository cartRepository, IMapper mapper)
+        public CartController(ICartRepository cartRepository, IProductRepository productRepository, IUserRepository userRepository, IMapper mapper)
         {
             _cartRepository = cartRepository;
+            _productRepository = productRepository;
+            _userRepository = userRepository;
             _mapper = mapper;
         }
-
-
-
-        //[HttpPost]
-        //public async Task<ActionResult<Cart>> PostCart(Cart cart)
-        //{
-        //    var product = await _context.Products.FindAsync(cart.ProductId);
-        //    if (product == null)
-        //    {
-        //        return BadRequest($"Product with ID {cart.ProductId} not found.");
-        //    }
-
-        //    if (product.StockQuantity < cart.Quantity)
-        //    {
-        //        return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {cart.Quantity}");
-        //    }
-
-        //    _context.Carts.Add(cart);
-        //    await _context.SaveChangesAsync();
-
-        //    return CreatedAtAction(nameof(GetCart), new { id = cart.CartId }, cart);
-        //}
 
         [HttpGet("{userId}")]
         public async Task<ActionResult<IEnumerable<CartDto>>> GetCartsByUserId(int userId)
@@ -51,17 +33,30 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<CartDto>> AddToCart(int UserId, CartDto cartDto)
+        public async Task<ActionResult<CartDto>> AddToCart([FromQuery] int userId, [FromQuery] int prodId, [FromBody] CartDto cartDto)
         {
+            var product = await _productRepository.GetProductByIdAsync(prodId);
+            if (product == null)
+            {
+                return NotFound(); 
+            }
+
+            if (product.StockQuantity < cartDto.Quantity)
+            {
+                return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {cartDto.Quantity}");
+            }
             var cart = _mapper.Map<Cart>(cartDto);
+            cart.Product = product;
+            cart.User = await _userRepository.GetUserByIdAsync(userId);
+
             await _cartRepository.AddToCartAsync(cart);
 
             var createdCartDto = _mapper.Map<CartDto>(cart);
-            return CreatedAtAction(nameof(GetCartsByUserId), new { userId = UserId }, createdCartDto);
+            return CreatedAtAction(nameof(GetCartsByUserId), new { userId = userId }, createdCartDto);
         }
 
         [HttpDelete("{userId}/{productId}")]
-        public async Task<IActionResult> RemoveFromCart(int cartId)
+        public async Task<IActionResult> RemoveFromCart(int userId, int productId, int cartId)
         {
             await _cartRepository.RemoveFromCartAsync(cartId);
             return NoContent();
@@ -75,7 +70,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPut("{userId}/{productId}")]
-        public async Task<IActionResult> UpdateCart([FromQuery] int userId, [FromQuery] int productId, [FromBody] CartDto cartDto)
+        public async Task<IActionResult> UpdateCart(int userId, int productId, [FromBody] CartDto cartDto)
         {
             var cart = _mapper.Map<Cart>(cartDto);
             await _cartRepository.UpdateCartAsync(cart);

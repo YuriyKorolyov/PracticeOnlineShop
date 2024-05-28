@@ -1,6 +1,6 @@
-﻿namespace MyApp.Dto
+﻿namespace MyApp.Dto.ReadDto
 {
-    public class ReviewDto
+    public class ReviewReadDto
     {
         public int Id { get; set; }
         public string ReviewText { get; set; }

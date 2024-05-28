@@ -10,12 +10,10 @@ namespace MyApp.Repository
     public class CategoryRepository : ICategoryRepository
     {
         private readonly ApplicationDbContext _context;
-        private readonly IMapper _mapper;
 
-        public CategoryRepository(ApplicationDbContext context, IMapper mapper)
+        public CategoryRepository(ApplicationDbContext context)
         {
             _context = context;
-            _mapper = mapper;
         }
         public async Task<bool> CategoryExistsAsync(int id)
         {

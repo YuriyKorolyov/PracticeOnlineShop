@@ -38,7 +38,7 @@ namespace MyApp.Controllers
             if (! await _productRepository.ProductExistsAsync(prodId))
                 return NotFound();
 
-            var product = _mapper.Map<ProductDto>(_productRepository.GetProductByIdAsync(prodId));
+            var product = _mapper.Map<ProductDto>(await _productRepository.GetProductByIdAsync(prodId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -67,11 +67,11 @@ namespace MyApp.Controllers
             if (productDto == null)
                 return BadRequest(ModelState);
 
-            var product = _productRepository.GetProductTrimToUpperAsync(productDto);
+            var product = await _productRepository.GetProductTrimToUpperAsync(productDto);
 
             if (product != null)
             {
-                ModelState.AddModelError("", "Product already exists");
+                ModelState.AddModelError("", "Product already exists ");
                 return StatusCode(422, ModelState);
             }
 
@@ -86,11 +86,11 @@ namespace MyApp.Controllers
             }
 
             var createdProductDto = _mapper.Map<ProductDto>(productMap);
-            return CreatedAtAction(nameof(GetProduct), new { id = createdProductDto.Id }, createdProductDto);
+            return CreatedAtAction(nameof(GetProduct), new { prodId = createdProductDto.Id }, createdProductDto);
         }
 
         [HttpPut("{prodId}")]
-        public async Task<IActionResult> PutProduct(int prodId, [FromQuery] int catId, [FromBody] ProductDto productDto)
+        public async Task<IActionResult> PutProduct(int prodId, [FromBody] ProductDto productDto)
         {
             if (productDto == null)
                 return BadRequest(ModelState);
@@ -106,9 +106,10 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var product = _mapper.Map<Product>(productDto);
+            var product = _mapper.Map<Product>(productDto);            
+            
 
-            if (! await _productRepository.UpdateProductAsync(catId, product))
+            if (! await _productRepository.UpdateProductAsync(product))
             {
                 ModelState.AddModelError("", "Something went wrong updating product");
                 return StatusCode(500, ModelState);

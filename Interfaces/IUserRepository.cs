@@ -12,7 +12,7 @@ namespace MyApp.Interfaces
         Task<bool> UpdateUserAsync(User user);
         Task<bool> DeleteUserAsync(User user);
         Task<bool> UserExistsAsync(int userId);
-        Task<IEnumerable<Review>> GetReviewsByUserAsync(int reviewerId);
-        Task<bool> Save();
+        Task<IEnumerable<Review>> GetReviewsByUserAsync(int userId);
+        Task<bool> SaveAsync();
     }
 }

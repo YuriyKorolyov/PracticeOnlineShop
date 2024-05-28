@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Dto;
+using MyApp.Dto.ReadDto;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -20,27 +20,27 @@ namespace MyApp.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PaymentDto>>> GetPayments()
+        public async Task<ActionResult<IEnumerable<PaymentReadDto>>> GetPayments()
         {
             var payments = await _paymentRepository.GetPaymentsAsync();
-            var paymentDtos = _mapper.Map<IEnumerable<PaymentDto>>(payments);
+            var paymentDtos = _mapper.Map<IEnumerable<PaymentReadDto>>(payments);
             return Ok(paymentDtos);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<PaymentDto>> GetPayment(int id)
+        public async Task<ActionResult<PaymentReadDto>> GetPayment(int id)
         {
             var payment = await _paymentRepository.GetPaymentByIdAsync(id);
             if (payment == null)
             {
                 return NotFound();
             }
-            var paymentDto = _mapper.Map<PaymentDto>(payment);
+            var paymentDto = _mapper.Map<PaymentReadDto>(payment);
             return Ok(paymentDto);
         }
 
         [HttpPost]
-        public async Task<ActionResult<PaymentDto>> AddPayment(PaymentDto paymentDto)
+        public async Task<ActionResult<PaymentReadDto>> AddPayment(PaymentReadDto paymentDto)
         {
             if (!ModelState.IsValid)
             {
@@ -48,14 +48,17 @@ namespace MyApp.Controllers
             }
 
             var payment = _mapper.Map<Payment>(paymentDto);
+            payment.PaymentDate = DateTime.UtcNow;
+            payment.Status = (PaymentStatus)new Random().Next(0, 3);
+
             await _paymentRepository.AddPaymentAsync(payment);
 
-            var createdPaymentDto = _mapper.Map<PaymentDto>(payment);
+            var createdPaymentDto = _mapper.Map<PaymentReadDto>(payment);
             return CreatedAtAction(nameof(GetPayment), new { id = createdPaymentDto.Id }, createdPaymentDto);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePayment(int id, PaymentDto paymentDto)
+        public async Task<IActionResult> UpdatePayment(int id, PaymentReadDto paymentDto)
         {
             if (id != paymentDto.Id || !ModelState.IsValid)
             {

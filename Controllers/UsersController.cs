@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Dto;
+using MyApp.Dto.Update;
+using MyApp.Dto.CreateDto;
+using MyApp.Dto.ReadDto;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -20,9 +22,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
+    public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
     {
-        var userDtos = _mapper.Map<IEnumerable<UserDto>>(await _userRepository.GetUsersAsync());
+        var userDtos = _mapper.Map<IEnumerable<UserReadDto>>(await _userRepository.GetUsersAsync());
 
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -31,12 +33,12 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{userId}")]
-    public async Task<ActionResult<UserDto>> GetUser(int userId)
+    public async Task<ActionResult<UserReadDto>> GetUser(int userId)
     {
         if (! await _userRepository.UserExistsAsync(userId))
             return NotFound();
 
-        var userDto = _mapper.Map<UserDto>(await _userRepository.GetUserByIdAsync(userId));
+        var userDto = _mapper.Map<UserReadDto>(await _userRepository.GetUserByIdAsync(userId));
 
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -45,7 +47,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<UserDto>> PostUser([FromQuery] int roleId, [FromBody] UserDto userDto)
+    public async Task<ActionResult<UserReadDto>> PostUser([FromQuery] int roleId, [FromBody] UserCreateDto userDto)
     {
         if (userDto == null)
             return BadRequest(ModelState);
@@ -62,12 +64,12 @@ public class UsersController : ControllerBase
             return StatusCode(500, ModelState);
         }
 
-        var createdUserDto = _mapper.Map<UserDto>(user);
+        var createdUserDto = _mapper.Map<UserReadDto>(user);
         return CreatedAtAction(nameof(GetUser), new { userId = createdUserDto.Id }, createdUserDto);
     }
 
     [HttpPut("{userId}")]
-    public async Task<IActionResult> PutUser(int userId, [FromBody] UserDto userDto)
+    public async Task<IActionResult> PutUser(int userId, [FromBody] UserUpdateDto userDto)
     {
         if (userDto == null)
             return BadRequest(ModelState);
@@ -80,7 +82,7 @@ public class UsersController : ControllerBase
 
         if (!ModelState.IsValid)
             return BadRequest();
-
+        
         var user = _mapper.Map<User>(userDto);
 
         if (! await _userRepository.UpdateUserAsync(user))

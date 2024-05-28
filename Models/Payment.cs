@@ -9,12 +9,19 @@ namespace MyApp.Models
         public decimal Amount { get; set; }
         public int OrderId { get; set; }
         public DateTime PaymentDate { get; set; }
-        public string PaymentStatus { get; set; }
+        public PaymentStatus Status { get; set; }
 
         public User User { get; set; }
         public Order Order { get; set; }
         public int? PromoId { get; set; }
         public PromoCode PromoCode { get; set; }
+    }
+
+    public enum PaymentStatus
+    {
+        Pending,
+        Success,
+        Failed
     }
 
 }
