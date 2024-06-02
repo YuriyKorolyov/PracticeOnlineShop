@@ -27,14 +27,16 @@ namespace MyApp.Repository
 
         public async Task<Order> GetOrderByIdAsync(int id)
         {
-            return await _context.Orders.Where(o => o.Id == id).Include(order => order.OrderDetails).ThenInclude(od => od.Product).FirstOrDefaultAsync();
+            return await _context.Orders.Where(o => o.Id == id).Include(o => o.Payment).Include(order => order.OrderDetails).ThenInclude(od => od.Product).FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<Order>> GetOrdersAsync()
+        public IQueryable<Order> GetOrders()
         {
-            return await _context.Orders
-            .Include(o => o.OrderDetails)
-            .ToListAsync();
+            return _context.Orders
+                .Include(o => o.Payment)
+                .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.Product)
+                .AsQueryable();
         }
 
         public async Task<IEnumerable<OrderDetail>> GetOrderDetailsByUserAsync(int userId)

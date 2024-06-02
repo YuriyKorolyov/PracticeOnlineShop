@@ -1,7 +1,5 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
-using MyApp.Dto;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -16,10 +14,11 @@ namespace MyApp.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<User>> GetUsersAsync()
+        public IQueryable<User> GetUsers()
         {
-            return await _context.Users.Include(u => u.Role).ToListAsync();
-            //return await _context.Users.ToListAsync();
+            return _context.Users
+                .Include(u => u.Role)
+                .AsQueryable();
         }
 
         public async Task<User> GetUserByIdAsync(int userId)
@@ -50,10 +49,6 @@ namespace MyApp.Repository
             return await _context.Users.AnyAsync(u => u.Id == userId);
         }
 
-        public async Task<IEnumerable<Review>> GetReviewsByUserAsync(int userId)
-        {
-            return await _context.Reviews.Where(r => r.User.Id == userId).ToListAsync();
-        }
         public async Task<bool> SaveAsync()
         {
             var saved = await _context.SaveChangesAsync();

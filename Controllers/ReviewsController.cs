@@ -1,6 +1,10 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Dto;
+using Microsoft.EntityFrameworkCore;
+using MyApp.Dto.Create;
+using MyApp.Dto.Read;
+using MyApp.Dto.Update;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -24,9 +28,9 @@ namespace MyApp.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviews()
+        public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviews()
         {
-            var reviews = _mapper.Map<List<ReviewDto>>(await _reviewRepository.GetReviewsAsync());
+            var reviews = _mapper.Map<List<ReviewReadDto>>(await _reviewRepository.GetReviewsAsync());
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -35,12 +39,12 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{reviewId}")]
-        public async Task<ActionResult<ProductDto>> GetReview(int reviewId)
+        public async Task<ActionResult<ReviewReadDto>> GetReview(int reviewId)
         {
             if (! await _reviewRepository.ReviewExistsAsync(reviewId))
                 return NotFound();
 
-            var review = _mapper.Map<ReviewDto>(await _reviewRepository.GetReviewByIdAsync(reviewId));
+            var review = _mapper.Map<ReviewReadDto>(await _reviewRepository.GetReviewByIdAsync(reviewId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -49,9 +53,11 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("product/{prodId}")]
-        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsForAProduct(int prodId)
+        public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviewsForAProduct(int prodId)
         {
-            var reviews = _mapper.Map<List<ReviewDto>>(await _reviewRepository.GetReviewsOfAProductAsync(prodId));
+            var reviews = await _reviewRepository.GetReviewsOfAProduct(prodId)
+                .ProjectTo<ReviewReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
 
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -60,26 +66,18 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> CreateReview([FromQuery] int userId, [FromQuery] int prodId, [FromBody] ReviewDto reviewDto)
+        public async Task<ActionResult> CreateReview([FromBody] ReviewCreateDto reviewDto)
         {
             if (reviewDto == null)
                 return BadRequest(ModelState);
-
-            var reviews = await _reviewRepository.GetReviewsTrimToUpperAsync(reviewDto);
-
-            if (reviews != null)
-            {
-                ModelState.AddModelError("", "Review already exists");
-                return StatusCode(422, ModelState);
-            }
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             var review = _mapper.Map<Review>(reviewDto);
 
-            review.Product = await _productRepository.GetProductByIdAsync(prodId);
-            review.User = await _userRepository.GetUserByIdAsync(userId);
+            review.Product = await _productRepository.GetProductByIdAsync(reviewDto.ProductId);
+            review.User = await _userRepository.GetUserByIdAsync(reviewDto.UserId);
 
             if (! await _reviewRepository.CreateReviewAsync(review))
             {
@@ -87,12 +85,12 @@ namespace MyApp.Controllers
                 return StatusCode(500, ModelState);
             }
 
-            var createdReviewDto = _mapper.Map<ReviewDto>(review);
+            var createdReviewDto = _mapper.Map<ReviewReadDto>(review);
             return CreatedAtAction(nameof(GetReview), new { reviewId = createdReviewDto.Id }, createdReviewDto);
         }
 
         [HttpPut("{reviewId}")]
-        public async Task<IActionResult> UpdateReview(int reviewId, [FromBody] ReviewDto updatedReview)
+        public async Task<IActionResult> UpdateReview(int reviewId, [FromBody] ReviewUpdateDto updatedReview)
         {
             if (updatedReview == null)
                 return BadRequest(ModelState);
@@ -106,9 +104,13 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var reviewMap = _mapper.Map<Review>(updatedReview);
+            var review = await _reviewRepository.GetReviewByIdAsync(reviewId);
 
-            if (! await _reviewRepository.UpdateReviewAsync(reviewMap))
+            review.Product = await _productRepository.GetProductByIdAsync(updatedReview.ProductId);
+            review.User = await _userRepository.GetUserByIdAsync(updatedReview.UserId);
+            review.ReviewText = updatedReview.ReviewText;
+
+            if (! await _reviewRepository.UpdateReviewAsync(review))
             {
                 ModelState.AddModelError("", "Something went wrong updating review");
                 return StatusCode(500, ModelState);

@@ -1,6 +1,10 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Dto.ReadDto;
+using Microsoft.EntityFrameworkCore;
+using MyApp.Dto.Create;
+using MyApp.Dto.Read;
+using MyApp.Dto.Update;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -11,26 +15,35 @@ namespace MyApp.Controllers
     public class PaymentController : ControllerBase
     {
         private readonly IPaymentRepository _paymentRepository;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IPromoCodeRepository _promoCodeRepository;
         private readonly IMapper _mapper;
 
-        public PaymentController(IPaymentRepository paymentRepository, IMapper mapper)
+        public PaymentController(IPaymentRepository paymentRepository, IOrderRepository orderRepository, IPromoCodeRepository promoCodeRepository, IMapper mapper)
         {
             _paymentRepository = paymentRepository;
+            _orderRepository = orderRepository;
+            _promoCodeRepository = promoCodeRepository;
             _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PaymentReadDto>>> GetPayments()
         {
-            var payments = await _paymentRepository.GetPaymentsAsync();
-            var paymentDtos = _mapper.Map<IEnumerable<PaymentReadDto>>(payments);
-            return Ok(paymentDtos);
+            var payments = await _paymentRepository.GetPayments()
+                .ProjectTo<PaymentReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            return Ok(payments);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<PaymentReadDto>> GetPayment(int id)
+        [HttpGet("{payId}")]
+        public async Task<ActionResult<PaymentReadDto>> GetPayment(int payId)
         {
-            var payment = await _paymentRepository.GetPaymentByIdAsync(id);
+            var payment = await _paymentRepository.GetPaymentByIdAsync(payId);
             if (payment == null)
             {
                 return NotFound();
@@ -40,7 +53,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<PaymentReadDto>> AddPayment(PaymentReadDto paymentDto)
+        public async Task<ActionResult<PaymentReadDto>> AddPayment(PaymentCreateDto paymentDto)
         {
             if (!ModelState.IsValid)
             {
@@ -48,6 +61,18 @@ namespace MyApp.Controllers
             }
 
             var payment = _mapper.Map<Payment>(paymentDto);
+            payment.Order = await _orderRepository.GetOrderByIdAsync(paymentDto.OrderId);
+
+            if (!string.IsNullOrEmpty(paymentDto.PromoName))
+            {
+                var promoCode = await _promoCodeRepository.GetPromoCodeByNameAsync(paymentDto.PromoName);
+                if (promoCode != null && promoCode.EndDate > DateTime.UtcNow)
+                {
+                    payment.PromoCode = promoCode;
+                    payment.Amount = payment.Order.TotalAmount * (1 - promoCode.Discount);
+                }
+            }        
+
             payment.PaymentDate = DateTime.UtcNow;
             payment.Status = (PaymentStatus)new Random().Next(0, 3);
 
@@ -57,31 +82,38 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetPayment), new { id = createdPaymentDto.Id }, createdPaymentDto);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePayment(int id, PaymentReadDto paymentDto)
+        [HttpPut("{payId}")]
+        public async Task<IActionResult> UpdatePayment(int payId, PaymentUpdateDto paymentDto)
         {
-            if (id != paymentDto.Id || !ModelState.IsValid)
+            if (payId != paymentDto.Id || !ModelState.IsValid)
             {
                 return BadRequest();
             }
 
-            var payment = _mapper.Map<Payment>(paymentDto);
+            var payment = await _paymentRepository.GetPaymentByIdAsync(payId);
+
+            var order = await _orderRepository.GetOrderByIdAsync(paymentDto.OrderId);
+            if (order == null)
+            {
+                return NotFound("Order not found");
+            }
+
+            payment.Order = order;
+            payment.Amount = payment.Order.TotalAmount;
+
+            if (!string.IsNullOrEmpty(paymentDto.PromoName))
+            {
+                var promoCode = await _promoCodeRepository.GetPromoCodeByNameAsync(paymentDto.PromoName);
+                if (promoCode != null && promoCode.EndDate > DateTime.UtcNow)
+                {
+                    payment.PromoCode = promoCode;
+                    payment.Amount -= payment.Order.TotalAmount * promoCode.Discount;
+                }                
+            }
+
+            payment.Status = paymentDto.Status;
+
             await _paymentRepository.UpdatePaymentAsync(payment);
-            return NoContent();
-        }
-
-        [HttpPost("{id}/apply-promo/{promoId}")]
-        public async Task<IActionResult> ApplyPromoCode(int id, int promoId)
-        {
-            try
-            {
-                await _paymentRepository.ApplyPromoCodeAsync(id, promoId);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-
             return NoContent();
         }
     }

@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
-using MyApp.Dto;
+using MyApp.Dto.Create;
+using MyApp.Dto.Read;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -17,19 +19,22 @@ namespace MyApp.Repository
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<Product>> GetProductsAsync()
+        public IQueryable<Product> GetProducts()
         {
-            return await _context.Products.ToListAsync();
+            return _context.Products
+                .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+                .AsQueryable();
         }
 
         public async Task<Product> GetProductByIdAsync(int id)
         {
-            return await _context.Products.Where(p => p.Id == id).FirstOrDefaultAsync();
+            return await _context.Products.Include(p => p.ProductCategories).ThenInclude(pc => pc.Category).FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task<Product> GetProductAsync(string productName)
         {
-            return await _context.Products.Where(p => p.Name == productName).FirstOrDefaultAsync();
+            return await _context.Products.Where(p => p.Name == productName).Include(p => p.ProductCategories).ThenInclude(pc => pc.Category).FirstOrDefaultAsync();
         }
 
         public async Task<decimal> GetProductRatingAsync(int id)
@@ -44,17 +49,8 @@ namespace MyApp.Repository
             return Math.Round((decimal)reviews.Sum(r => r.Rating) / reviews.Count(), 2);
         }
 
-        public async Task<bool> AddProductAsync(int categoryId, Product product)
+        public async Task<bool> AddProductAsync(Product product)
         {
-            var category = await _context.Categories.Where(a => a.Id == categoryId).FirstOrDefaultAsync();
-           
-            var productCategory = new ProductCategory()
-            {
-                Category = category,
-                Product = product,
-            };
-
-            _context.Add(productCategory);
             _context.Add(product);
 
             return await Save();
@@ -82,10 +78,9 @@ namespace MyApp.Repository
             var saved = await _context.SaveChangesAsync();
             return saved > 0;
         }
-        public async Task<Product> GetProductTrimToUpperAsync(ProductDto productCreate)
+        public async Task<Product> GetProductTrimToUpperAsync(ProductCreateDto productCreate)
         {
-            var products = await GetProductsAsync();
-            return products.Where(c => c.Name.Trim().ToUpper() == productCreate.Name.TrimEnd().ToUpper()).FirstOrDefault();
+            return await _context.Products.Where(c => c.Name.Trim().ToUpper() == productCreate.Name.TrimEnd().ToUpper()).FirstOrDefaultAsync();
         }
     }
 }

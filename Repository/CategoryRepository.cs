@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
 using MyApp.Dto;
+using MyApp.Dto.Create;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -32,16 +33,23 @@ namespace MyApp.Repository
             return await Save();
         }
 
-        public async Task<IEnumerable<Category>> GetCategoriesAsync()
+        public IQueryable<Category> GetCategories()
         {
-            return await _context.Categories.ToListAsync();
+            return _context.Categories.AsQueryable();
         }
 
         public async Task<Category> GetCategoryByIdAsync(int id)
         {
-            return await _context.Categories.Where(e => e.Id == id).FirstOrDefaultAsync();
+            return await _context.Categories
+                .Where(e => e.Id == id)
+                .FirstOrDefaultAsync();
         }
-
+        public async Task<IEnumerable<Category>> GetCategoriesByIdsAsync(IEnumerable<int> ids)
+        {
+            return await _context.Categories
+                .Where(c => ids.Contains(c.Id))
+                .ToListAsync();
+        }
         public async Task<IEnumerable<Product>> GetProductsByCategoryAsync(int categoryId)
         {
             return await _context.ProductCategories.Where(e => e.CategoryId == categoryId).Select(c => c.Product).ToListAsync();
@@ -59,10 +67,9 @@ namespace MyApp.Repository
             return await Save();
         }
 
-        public async Task<Category> GetCategoryTrimToUpperAsync(CategoryDto categoryCreate)
+        public async Task<Category> GetCategoryTrimToUpperAsync(CategoryCreateDto categoryCreate)
         {
-            var categories = await GetCategoriesAsync();
-            return categories.Where(c => c.CategoryName.Trim().ToUpper() == categoryCreate.CategoryName.TrimEnd().ToUpper()).FirstOrDefault();
+            return _context.Categories.Where(c => c.CategoryName.Trim().ToUpper() == categoryCreate.CategoryName.TrimEnd().ToUpper()).FirstOrDefault();
         }
     }
 }

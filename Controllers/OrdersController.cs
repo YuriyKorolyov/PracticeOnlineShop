@@ -1,16 +1,10 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Dto;
+using MyApp.Dto.Read;
 using MyApp.Interfaces;
 using MyApp.Models;
-using MyApp.Repository;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace MyApp.Controllers
 {
@@ -34,9 +28,11 @@ namespace MyApp.Controllers
             _mapper = mapper;
         }
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderReadDto>>> GetOrders()
         {
-            var orders = _mapper.Map<List<OrderDto>>(await _orderRepository.GetOrdersAsync());
+            var orders = await _orderRepository.GetOrders()
+                .ProjectTo<OrderReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -45,12 +41,12 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{orderId}")]
-        public async Task<ActionResult<OrderDto>> GetOrder(int orderId)
+        public async Task<ActionResult<OrderReadDto>> GetOrder(int orderId)
         {
             if (! await _orderRepository.OrderExistsAsync(orderId))
                 return NotFound();
 
-            var order = _mapper.Map<OrderDto>(await _orderRepository.GetOrderByIdAsync(orderId));
+            var order = _mapper.Map<OrderReadDto>(await _orderRepository.GetOrderByIdAsync(orderId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -59,7 +55,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<OrderDto>> PostOrder([FromQuery] int userId)
+        public async Task<ActionResult<OrderReadDto>> PostOrder([FromQuery] int userId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -68,7 +64,7 @@ namespace MyApp.Controllers
 
             order.OrderDate = DateTime.UtcNow;
             order.User = await _userRepository.GetUserByIdAsync(userId);
-            var cartItems = await _cartRepository.GetCartsByUserIdAsync(userId);//товары в заказ добавляются из корзины пользователя
+            var cartItems = await _cartRepository.GetCartsByUserId(userId).ToListAsync();//товары в заказ добавляются из корзины пользователя
 
             if (cartItems == null || !cartItems.Any())
             {
@@ -110,7 +106,7 @@ namespace MyApp.Controllers
 
             await _cartRepository.ClearCartAsync(order.User.Id);
 
-            var createdOrderDto = _mapper.Map<OrderDto>(order);
+            var createdOrderDto = _mapper.Map<OrderReadDto>(order);
             return CreatedAtAction(nameof(GetOrder), new { orderId = createdOrderDto.Id }, createdOrderDto);
         }
 

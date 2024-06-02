@@ -31,14 +31,9 @@ namespace MyApp.Repository
                 await _context.SaveChangesAsync();
             }
         }
-
-        public async Task<IEnumerable<Cart>> GetCartsByUserIdAsync(int userId)
+        public async Task<Cart> GetCartByIdAsync(int cartId)
         {
-            return await _context.Carts
-                         .Include(cart => cart.Product)
-                         .Where(cart => cart.User.Id == userId)
-                         .ToListAsync();
-            //return await _context.Carts.Where(cart => cart.User.Id == userId).ToListAsync();
+            return await _context.Carts.Where(cart => cart.Id == cartId).FirstOrDefaultAsync();
         }
 
         public async Task RemoveFromCartAsync(int cartId)
@@ -55,6 +50,14 @@ namespace MyApp.Repository
         {
             _context.Carts.Update(cart);
             await _context.SaveChangesAsync();
+        }
+
+        IQueryable<Cart> ICartRepository.GetCartsByUserId(int userId)
+        {
+            return _context.Carts
+                .Include(cart => cart.Product)
+                .Where(cart => cart.User.Id == userId)
+                .AsQueryable();
         }
     }
 }

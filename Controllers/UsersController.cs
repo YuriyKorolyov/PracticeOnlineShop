@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Dto.Update;
-using MyApp.Dto.CreateDto;
-using MyApp.Dto.ReadDto;
+using MyApp.Dto.Create;
+using MyApp.Dto.Read;
 using MyApp.Interfaces;
 using MyApp.Models;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -24,7 +26,9 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
     {
-        var userDtos = _mapper.Map<IEnumerable<UserReadDto>>(await _userRepository.GetUsersAsync());
+        var userDtos = await _userRepository.GetUsers()
+            .ProjectTo<UserReadDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
 
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -47,7 +51,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<UserReadDto>> PostUser([FromQuery] int roleId, [FromBody] UserCreateDto userDto)
+    public async Task<ActionResult<UserReadDto>> PostUser([FromBody] UserCreateDto userDto)
     {
         if (userDto == null)
             return BadRequest(ModelState);
@@ -56,7 +60,7 @@ public class UsersController : ControllerBase
             return BadRequest(ModelState);
         
         var user = _mapper.Map<User>(userDto);
-        user.Role = await _roleRepository.GetRoleByIdAsync(roleId);
+        user.Role = await _roleRepository.GetRoleByIdAsync(userDto.RoleId);
 
         if (! await _userRepository.AddUserAsync(user))
         {
@@ -83,7 +87,13 @@ public class UsersController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest();
         
-        var user = _mapper.Map<User>(userDto);
+        var user = await _userRepository.GetUserByIdAsync(userId);
+        user.Role = await _roleRepository.GetRoleByIdAsync(userDto.RoleId);
+        user.FirstName = userDto.FirstName;
+        user.LastName = userDto.LastName;
+        user.Email = userDto.Email;
+        user.PhoneNumber = userDto.PhoneNumber;
+        user.ShippingAddress = userDto.ShippingAddress;
 
         if (! await _userRepository.UpdateUserAsync(user))
         {

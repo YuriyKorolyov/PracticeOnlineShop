@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
 using MyApp.Interfaces;
 using MyApp.Models;
@@ -9,11 +8,9 @@ namespace MyApp.Repository
     public class ViewHistoryRepository : IViewHistoryRepository
     {
         private readonly ApplicationDbContext _context;
-        private readonly IMapper _mapper;
-        public ViewHistoryRepository(ApplicationDbContext context, IMapper mapper)
+        public ViewHistoryRepository(ApplicationDbContext context)
         {
             _context = context;
-            _mapper = mapper;
         }
         public async Task<bool> CreateViewHistoryAsync(ViewHistory viewHistory)
         {
@@ -34,12 +31,15 @@ namespace MyApp.Repository
 
         public async Task<ViewHistory> GetViewHistoryByIdAsync(int viewId)
         {
-            return await _context.ViewHistories.Where(vh => vh.Id == viewId).FirstOrDefaultAsync();
+            return await _context.ViewHistories.Where(vh => vh.Id == viewId).Include(vh => vh.Product).FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<ViewHistory>> GetViewHistoryByUserIdAsync(int userId)
+        public IQueryable<ViewHistory> GetViewHistoryByUserId(int userId)
         {
-            return await _context.ViewHistories.Where(vh => vh.User.Id == userId).ToListAsync();
+            return _context.ViewHistories
+                .Where(vh => vh.User.Id == userId)
+                .Include(vh => vh.Product)
+                .AsQueryable();
         }
 
         public async Task<bool> SaveAsync()

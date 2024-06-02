@@ -14,9 +14,11 @@ namespace MyApp.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<Payment>> GetPaymentsAsync()
+        public IQueryable<Payment> GetPayments()
         {
-            return await _context.Payments.Include(p => p.PromoCode).ToListAsync();
+            return _context.Payments
+                .Include(p => p.PromoCode)
+                .AsQueryable();
         }
 
         public async Task<Payment> GetPaymentByIdAsync(int paymentId)
@@ -32,25 +34,6 @@ namespace MyApp.Repository
 
         public async Task UpdatePaymentAsync(Payment payment)
         {
-            _context.Payments.Update(payment);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task ApplyPromoCodeAsync(int paymentId, int promoId)
-        {
-            var payment = await _context.Payments.FindAsync(paymentId);
-            if (payment == null)
-            {
-                throw new InvalidOperationException("Payment not found.");
-            }
-
-            var promoCode = await _context.PromoCodes.FindAsync(promoId);
-            if (promoCode == null)
-            {
-                throw new InvalidOperationException("Promo code not found.");
-            }
-
-            payment.PromoId = promoId;
             _context.Payments.Update(payment);
             await _context.SaveChangesAsync();
         }

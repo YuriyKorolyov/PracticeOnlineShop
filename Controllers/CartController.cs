@@ -1,7 +1,10 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MyApp.Dto;
+using MyApp.Dto.Create;
+using MyApp.Dto.Read;
+using MyApp.Dto.Update;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -25,17 +28,18 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{userId}")]
-        public async Task<ActionResult<IEnumerable<CartDto>>> GetCartsByUserId(int userId)
+        public async Task<ActionResult<IEnumerable<CartReadDto>>> GetCartsByUserId(int userId)
         {
-            var carts = await _cartRepository.GetCartsByUserIdAsync(userId);
-            var cartDtos = _mapper.Map<IEnumerable<CartDto>>(carts);
-            return Ok(cartDtos);
+            var carts = await _cartRepository.GetCartsByUserId(userId)
+                .ProjectTo<CartReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+            return Ok(carts);
         }
 
         [HttpPost]
-        public async Task<ActionResult<CartDto>> AddToCart([FromQuery] int userId, [FromQuery] int prodId, [FromBody] CartDto cartDto)
+        public async Task<ActionResult<CartReadDto>> AddToCart([FromBody] CartCreateDto cartDto)
         {
-            var product = await _productRepository.GetProductByIdAsync(prodId);
+            var product = await _productRepository.GetProductByIdAsync(cartDto.ProductId);
             if (product == null)
             {
                 return NotFound(); 
@@ -46,17 +50,18 @@ namespace MyApp.Controllers
                 return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {cartDto.Quantity}");
             }
             var cart = _mapper.Map<Cart>(cartDto);
+
             cart.Product = product;
-            cart.User = await _userRepository.GetUserByIdAsync(userId);
+            cart.User = await _userRepository.GetUserByIdAsync(cartDto.UserId);
 
             await _cartRepository.AddToCartAsync(cart);
 
-            var createdCartDto = _mapper.Map<CartDto>(cart);
-            return CreatedAtAction(nameof(GetCartsByUserId), new { userId = userId }, createdCartDto);
+            var createdCartDto = _mapper.Map<CartReadDto>(cart);
+            return CreatedAtAction(nameof(GetCartsByUserId), new { userId = cartDto.UserId }, createdCartDto);
         }
 
-        [HttpDelete("{userId}/{productId}")]
-        public async Task<IActionResult> RemoveFromCart(int userId, int productId, int cartId)
+        [HttpDelete("{cartId}")]
+        public async Task<IActionResult> RemoveFromCart(int cartId)
         {
             await _cartRepository.RemoveFromCartAsync(cartId);
             return NoContent();
@@ -69,10 +74,45 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
-        [HttpPut("{userId}/{productId}")]
-        public async Task<IActionResult> UpdateCart(int userId, int productId, [FromBody] CartDto cartDto)
+        [HttpPut("{cartId}")]
+        public async Task<IActionResult> UpdateCart(int cartId, [FromBody] CartUpdateDto cartDto)
         {
-            var cart = _mapper.Map<Cart>(cartDto);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var product = await _productRepository.GetProductByIdAsync(cartDto.ProductId);
+            if (product == null)
+            {
+                return NotFound("Product not found.");
+            }
+
+            if (product.StockQuantity < cartDto.Quantity)
+            {
+                return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {cartDto.Quantity}");
+            }
+
+            var cart = await _cartRepository.GetCartByIdAsync(cartId);
+
+            if (cart == null)
+            {
+                return NotFound("Cart not found.");
+            }
+
+            var user = await _userRepository.GetUserByIdAsync(cartDto.UserId);
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            if (cart.User.Id != cartDto.UserId || cart.Product.Id != cartDto.ProductId)
+            {
+                return BadRequest("User ID or Product ID mismatch.");
+            }
+
+            cart.Quantity = cartDto.Quantity;
+
             await _cartRepository.UpdateCartAsync(cart);
 
             return NoContent();

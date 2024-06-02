@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Dto;
+using MyApp.Dto.Read;
+using MyApp.Dto.Create;
+using MyApp.Dto.Update;
 using MyApp.Interfaces;
 using MyApp.Models;
-using MyApp.Repository;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Controllers
 {
@@ -25,9 +28,11 @@ namespace MyApp.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ViewHistoryDto>>> GetViewHistoryByUser([FromQuery] int userId)
+        public async Task<ActionResult<IEnumerable<ViewHistoryReadDto>>> GetViewHistoryByUser([FromQuery] int userId)
         {
-            var viewHistory = _mapper.Map<List<ViewHistoryDto>>(await _viewHistoryRepository.GetViewHistoryByUserIdAsync(userId));
+            var viewHistory = await _viewHistoryRepository.GetViewHistoryByUserId(userId)
+                .ProjectTo<ViewHistoryReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -36,12 +41,12 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{viewId}")]
-        public async Task<ActionResult<ProductDto>> GetViewHistory(int viewId)
+        public async Task<ActionResult<ViewHistoryReadDto>> GetViewHistory(int viewId)
         {
             if (!await _viewHistoryRepository.ViewHistoryExistsAsync(viewId))
                 return NotFound();
 
-            var review = _mapper.Map<ViewHistoryDto>(await _viewHistoryRepository.GetViewHistoryByIdAsync(viewId));
+            var review = _mapper.Map<ViewHistoryReadDto>(await _viewHistoryRepository.GetViewHistoryByIdAsync(viewId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -61,7 +66,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> CreateViewHistory([FromQuery] int userId, [FromQuery] int prodId, [FromBody] ViewHistoryDto viewDto)
+        public async Task<ActionResult> CreateViewHistory([FromBody] ViewHistoryCreateDto viewDto)
         {
             if (viewDto == null)
                 return BadRequest(ModelState);
@@ -71,8 +76,8 @@ namespace MyApp.Controllers
 
             var view = _mapper.Map<ViewHistory>(viewDto);
 
-            view.Product = await _productRepository.GetProductByIdAsync(prodId);
-            view.User = await _userRepository.GetUserByIdAsync(userId);
+            view.Product = await _productRepository.GetProductByIdAsync(viewDto.ProductId);
+            view.User = await _userRepository.GetUserByIdAsync(viewDto.UserId);
 
             if (!await _viewHistoryRepository.CreateViewHistoryAsync(view))
             {
@@ -80,12 +85,12 @@ namespace MyApp.Controllers
                 return StatusCode(500, ModelState);
             }
 
-            var createdViewDto = _mapper.Map<ViewHistoryDto>(view);
+            var createdViewDto = _mapper.Map<ViewHistoryReadDto>(view);
             return CreatedAtAction(nameof(GetViewHistory), new { viewId = createdViewDto.Id }, createdViewDto);
         }
 
         [HttpPut("{viewId}")]
-        public async Task<IActionResult> UpdateReview(int viewId, [FromBody] ViewHistoryDto updatedView)
+        public async Task<IActionResult> UpdateViewHistory(int viewId, [FromBody] ViewHistoryUpdateDto updatedView)
         {
             if (updatedView == null)
                 return BadRequest(ModelState);
@@ -99,11 +104,12 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var viewMap = _mapper.Map<ViewHistory>(updatedView);
+            var view = await _viewHistoryRepository.GetViewHistoryByIdAsync(viewId);
+            view.ViewDate = updatedView.ViewDate;            
 
-            if (!await _viewHistoryRepository.UpdateViewHistoryAsync(viewMap))
+            if (!await _viewHistoryRepository.UpdateViewHistoryAsync(view))
             {
-                ModelState.AddModelError("", "Something went wrong updating review");
+                ModelState.AddModelError("", "Something went wrong updating viewhistory");
                 return StatusCode(500, ModelState);
             }
 

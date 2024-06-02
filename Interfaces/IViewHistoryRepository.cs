@@ -5,7 +5,7 @@ namespace MyApp.Interfaces
 {
     public interface IViewHistoryRepository
     {
-        Task<IEnumerable<ViewHistory>> GetViewHistoryByUserIdAsync(int userId);
+        IQueryable<ViewHistory> GetViewHistoryByUserId(int userId);
         Task<ViewHistory> GetViewHistoryByIdAsync(int viewId);
         Task<int> GetCountViewHistoryOfAProductAsync(int prodId);
         Task<bool> ViewHistoryExistsAsync(int reviewId);

@@ -5,7 +5,7 @@ namespace MyApp.Interfaces
 {
     public interface IOrderRepository
     {
-        Task<IEnumerable<Order>> GetOrdersAsync();
+        IQueryable<Order> GetOrders();
         Task<Order> GetOrderByIdAsync(int id);
         Task<IEnumerable<OrderDetail>> GetOrderDetailsByUserAsync(int userId);
         Task<bool> CreateOrderAsync(Order order);

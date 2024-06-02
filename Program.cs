@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using MyApp.Data;
 using MyApp.Interfaces;
 using MyApp.Repository;
@@ -21,6 +20,7 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IViewHistoryRepository, ViewHistoryRepository>();
+builder.Services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

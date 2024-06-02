@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
-using MyApp.Dto;
+using MyApp.Dto.Create;
 using MyApp.Interfaces;
 using MyApp.Models;
 
@@ -40,15 +40,14 @@ namespace MyApp.Repository
             return await _context.Roles.Where(r => r.Id == roleId).FirstOrDefaultAsync();
         }
 
-        public async Task<ICollection<Role>> GetRolesAsync()
+        public IQueryable<Role> GetRoles()
         {
-            return await _context.Roles.ToListAsync();
+            return _context.Roles.AsQueryable();
         }
 
-        public async Task<Role> GetRolesTrimToUpperAsync(RoleDto roleCreate)
+        public async Task<Role> GetRolesTrimToUpperAsync(RoleCreateDto roleCreate)
         {
-            var roles = await GetRolesAsync();
-            return roles.Where(c => c.RoleName.Trim().ToUpper() == roleCreate.RoleName.TrimEnd().ToUpper()).FirstOrDefault();
+            return await _context.Roles.Where(c => c.RoleName.Trim().ToUpper() == roleCreate.RoleName.TrimEnd().ToUpper()).FirstOrDefaultAsync();
         }
 
         public async Task<bool> RoleExistsAsync(int roleId)

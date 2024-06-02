@@ -1,8 +1,15 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MyApp.Dto;
+using MyApp.Dto.Create;
+using MyApp.Dto.Read;
+using MyApp.Dto.Update;
 using MyApp.Interfaces;
 using MyApp.Models;
+using MyApp.Repository;
+using System.Threading;
 
 namespace MyApp.Controllers
 {
@@ -12,19 +19,23 @@ namespace MyApp.Controllers
     {
         private readonly IProductRepository _productRepository;
         private readonly IReviewRepository _reviewRepository;
+        private readonly ICategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
 
-        public ProductsController(IProductRepository productRepository, IReviewRepository reviewRepository, IMapper mapper)
+        public ProductsController(IProductRepository productRepository, IReviewRepository reviewRepository, ICategoryRepository categoryRepository, IMapper mapper)
         {
             _productRepository = productRepository;
             _reviewRepository = reviewRepository;
+            _categoryRepository = categoryRepository;
             _mapper = mapper;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<ProductReadDto>>> GetProducts()
         {
-            var productDtos = _mapper.Map<List<ProductDto>>(await _productRepository.GetProductsAsync());
+            var productDtos = await _productRepository.GetProducts()
+                .ProjectTo<ProductReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -33,12 +44,12 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{prodId}")]
-        public async Task<ActionResult<ProductDto>> GetProduct(int prodId)
+        public async Task<ActionResult<ProductReadDto>> GetProduct(int prodId)
         {
             if (! await _productRepository.ProductExistsAsync(prodId))
                 return NotFound();
 
-            var product = _mapper.Map<ProductDto>(await _productRepository.GetProductByIdAsync(prodId));
+            var product = _mapper.Map<ProductReadDto>(await _productRepository.GetProductByIdAsync(prodId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -62,7 +73,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProductDto>> PostProduct([FromQuery] int catId, [FromBody] ProductDto productDto)
+        public async Task<ActionResult<ProductReadDto>> PostProduct([FromBody] ProductCreateDto productDto)
         {
             if (productDto == null)
                 return BadRequest(ModelState);
@@ -79,18 +90,27 @@ namespace MyApp.Controllers
                 return BadRequest(ModelState);
 
             var productMap = _mapper.Map<Product>(productDto);
-            if (!await _productRepository.AddProductAsync(catId, productMap))
+
+            var categories = await _categoryRepository.GetCategoriesByIdsAsync(productDto.CategoryIds);
+
+            productMap.ProductCategories = categories.Select(category => new ProductCategory
+            {
+                Product = productMap,
+                Category = category
+            }).ToList();
+
+            if (!await _productRepository.AddProductAsync(productMap))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
             }
 
-            var createdProductDto = _mapper.Map<ProductDto>(productMap);
+            var createdProductDto = _mapper.Map<ProductReadDto>(productMap);
             return CreatedAtAction(nameof(GetProduct), new { prodId = createdProductDto.Id }, createdProductDto);
         }
 
         [HttpPut("{prodId}")]
-        public async Task<IActionResult> PutProduct(int prodId, [FromBody] ProductDto productDto)
+        public async Task<IActionResult> PutProduct(int prodId, [FromBody] ProductUpdateDto productDto)
         {
             if (productDto == null)
                 return BadRequest(ModelState);
@@ -106,7 +126,7 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var product = _mapper.Map<Product>(productDto);            
+            var product = await _productRepository.GetProductByIdAsync(prodId);            
             
 
             if (! await _productRepository.UpdateProductAsync(product))

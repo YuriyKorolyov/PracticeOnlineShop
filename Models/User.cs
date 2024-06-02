@@ -19,7 +19,6 @@ namespace MyApp.Models
         public ICollection<Review> Reviews { get; set; }
         public ICollection<ViewHistory> ViewHistories { get; set; }
         public ICollection<Cart> Carts { get; set; }
-        public ICollection<Payment> Payments { get; set; }
         public Role Role { get; set; }
     }
 

@@ -144,17 +144,12 @@ namespace MyApp.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId")
                         .IsUnique();
 
                     b.HasIndex("PromoId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Payments");
                 });
@@ -422,17 +417,9 @@ namespace MyApp.Migrations
                         .WithMany("Payments")
                         .HasForeignKey("PromoId");
 
-                    b.HasOne("MyApp.Models.User", "User")
-                        .WithMany("Payments")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Order");
 
                     b.Navigation("PromoCode");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MyApp.Models.ProductCategory", b =>
@@ -544,8 +531,6 @@ namespace MyApp.Migrations
                     b.Navigation("Carts");
 
                     b.Navigation("Orders");
-
-                    b.Navigation("Payments");
 
                     b.Navigation("Reviews");
 

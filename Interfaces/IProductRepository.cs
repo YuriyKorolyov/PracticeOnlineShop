@@ -1,4 +1,4 @@
-﻿using MyApp.Dto;
+﻿using MyApp.Dto.Create;
 using MyApp.Models;
 
 namespace MyApp.Interfaces
@@ -7,13 +7,13 @@ namespace MyApp.Interfaces
     {
         Task<Product> GetProductAsync(string productName);
         Task<decimal> GetProductRatingAsync(int id);
-        Task<IEnumerable<Product>> GetProductsAsync();
+        IQueryable<Product> GetProducts();
         Task<Product> GetProductByIdAsync(int id);
         Task<bool> ProductExistsAsync(int id);
-        Task<bool> AddProductAsync(int categoryID, Product product);
+        Task<bool> AddProductAsync(Product product);
         Task<bool> UpdateProductAsync(Product product);
         Task<bool> DeleteProductAsync(Product product);
         Task<bool> Save();
-        Task<Product> GetProductTrimToUpperAsync(ProductDto productCreate);
+        Task<Product> GetProductTrimToUpperAsync(ProductCreateDto productCreate);
     }
 }

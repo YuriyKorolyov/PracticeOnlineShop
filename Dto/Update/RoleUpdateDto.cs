@@ -1,4 +1,4 @@
-﻿namespace MyApp.Dto.Put
+﻿namespace MyApp.Dto.Update
 {
     public class RoleUpdateDto
     {
