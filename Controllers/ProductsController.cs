@@ -33,7 +33,9 @@ namespace MyApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductReadDto>>> GetProducts()
         {
-            var productDtos = await _productRepository.GetProducts()
+            var productDtos = await _productRepository.GetAll()
+                .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
                 .ProjectTo<ProductReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
@@ -46,10 +48,12 @@ namespace MyApp.Controllers
         [HttpGet("{prodId}")]
         public async Task<ActionResult<ProductReadDto>> GetProduct(int prodId)
         {
-            if (! await _productRepository.ProductExistsAsync(prodId))
+            if (! await _productRepository.Exists(prodId))
                 return NotFound();
 
-            var product = _mapper.Map<ProductReadDto>(await _productRepository.GetProductByIdAsync(prodId));
+            var product = _mapper.Map<ProductReadDto>(await _productRepository.GetById(prodId, query=>
+            query.Include(p=>p.ProductCategories)
+                 .ThenInclude(pc=>pc.Category)));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -61,10 +65,10 @@ namespace MyApp.Controllers
         [HttpGet("{prodId}/rating")]
         public async Task<ActionResult<decimal>> GetProductRating(int prodId)
         {
-            if (! await _productRepository.ProductExistsAsync(prodId))
+            if (! await _productRepository.Exists(prodId))
                 return NotFound();
 
-            var rating = await _productRepository.GetProductRatingAsync(prodId);
+            var rating = await _productRepository.GetProductRating(prodId);
 
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -91,7 +95,7 @@ namespace MyApp.Controllers
 
             var productMap = _mapper.Map<Product>(productDto);
 
-            var categories = await _categoryRepository.GetCategoriesByIdsAsync(productDto.CategoryIds);
+            var categories = await _categoryRepository.GetByIds(productDto.CategoryIds);
 
             productMap.ProductCategories = categories.Select(category => new ProductCategory
             {
@@ -99,7 +103,7 @@ namespace MyApp.Controllers
                 Category = category
             }).ToList();
 
-            if (!await _productRepository.AddProductAsync(productMap))
+            if (!await _productRepository.Add(productMap))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
@@ -120,16 +124,16 @@ namespace MyApp.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (! await _productRepository.ProductExistsAsync(prodId))
+            if (! await _productRepository.Exists(prodId))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var product = await _productRepository.GetProductByIdAsync(prodId);            
+            var product = await _productRepository.GetById(prodId);            
             
 
-            if (! await _productRepository.UpdateProductAsync(product))
+            if (! await _productRepository.Update(product))
             {
                 ModelState.AddModelError("", "Something went wrong updating product");
                 return StatusCode(500, ModelState);
@@ -141,23 +145,15 @@ namespace MyApp.Controllers
         [HttpDelete("{prodId}")]
         public async Task<IActionResult> DeleteProduct(int prodId)
         {
-            if (! await _productRepository.ProductExistsAsync(prodId))
+            if (! await _productRepository.Exists(prodId))
             {
                 return NotFound();
             }
 
-            var reviewsToDelete = await _reviewRepository.GetReviewsOfAProductAsync(prodId);
-            var productToDelete = await _productRepository.GetProductByIdAsync(prodId);
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (! await _reviewRepository.DeleteReviewsAsync(reviewsToDelete.ToList()))
-            {
-                ModelState.AddModelError("", "Something went wrong when deleting reviews");
-            }
-
-            if (! await _productRepository.DeleteProductAsync(productToDelete))
+            if (! await _productRepository.DeleteById(prodId))
             {
                 ModelState.AddModelError("", "Something went wrong deleting product");
             }

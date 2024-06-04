@@ -1,12 +1,10 @@
-﻿using MyApp.Models;
+﻿
+using MyApp.Interfaces.BASE;
+using MyApp.Models;
 
 namespace MyApp.Interfaces
 {
-    public interface IPaymentRepository
+    public interface IPaymentRepository : IBaseRepository<Payment>
     {
-        IQueryable<Payment> GetPayments();
-        Task<Payment> GetPaymentByIdAsync(int paymentId);
-        Task AddPaymentAsync(Payment payment);
-        Task UpdatePaymentAsync(Payment payment);
     }
 }

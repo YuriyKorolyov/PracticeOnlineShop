@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
 using MyApp.Interfaces;
+using MyApp.Interfaces.BASE;
 using MyApp.Repository;
+using MyApp.Repository.BASE;
 
 var builder = WebApplication.CreateBuilder(args);
 

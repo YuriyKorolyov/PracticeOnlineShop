@@ -30,7 +30,7 @@ namespace MyApp.Controllers
         [HttpGet("{userId}")]
         public async Task<ActionResult<IEnumerable<CartReadDto>>> GetCartsByUserId(int userId)
         {
-            var carts = await _cartRepository.GetCartsByUserId(userId)
+            var carts = await _cartRepository.GetByUserId(userId)
                 .ProjectTo<CartReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
             return Ok(carts);
@@ -39,7 +39,7 @@ namespace MyApp.Controllers
         [HttpPost]
         public async Task<ActionResult<CartReadDto>> AddToCart([FromBody] CartCreateDto cartDto)
         {
-            var product = await _productRepository.GetProductByIdAsync(cartDto.ProductId);
+            var product = await _productRepository.GetById(cartDto.ProductId);
             if (product == null)
             {
                 return NotFound(); 
@@ -52,9 +52,9 @@ namespace MyApp.Controllers
             var cart = _mapper.Map<Cart>(cartDto);
 
             cart.Product = product;
-            cart.User = await _userRepository.GetUserByIdAsync(cartDto.UserId);
+            cart.User = await _userRepository.GetById(cartDto.UserId);
 
-            await _cartRepository.AddToCartAsync(cart);
+            await _cartRepository.Add(cart);
 
             var createdCartDto = _mapper.Map<CartReadDto>(cart);
             return CreatedAtAction(nameof(GetCartsByUserId), new { userId = cartDto.UserId }, createdCartDto);
@@ -63,14 +63,14 @@ namespace MyApp.Controllers
         [HttpDelete("{cartId}")]
         public async Task<IActionResult> RemoveFromCart(int cartId)
         {
-            await _cartRepository.RemoveFromCartAsync(cartId);
+            await _cartRepository.DeleteById(cartId);
             return NoContent();
         }
 
         [HttpDelete("{userId}/clear")]
         public async Task<IActionResult> ClearCart(int userId)
         {
-            await _cartRepository.ClearCartAsync(userId);
+            await _cartRepository.DeleteByUserId(userId);
             return NoContent();
         }
 
@@ -82,7 +82,7 @@ namespace MyApp.Controllers
                 return BadRequest(ModelState);
             }
 
-            var product = await _productRepository.GetProductByIdAsync(cartDto.ProductId);
+            var product = await _productRepository.GetById(cartDto.ProductId);
             if (product == null)
             {
                 return NotFound("Product not found.");
@@ -93,14 +93,14 @@ namespace MyApp.Controllers
                 return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {cartDto.Quantity}");
             }
 
-            var cart = await _cartRepository.GetCartByIdAsync(cartId);
+            var cart = await _cartRepository.GetById(cartId);
 
             if (cart == null)
             {
                 return NotFound("Cart not found.");
             }
 
-            var user = await _userRepository.GetUserByIdAsync(cartDto.UserId);
+            var user = await _userRepository.GetById(cartDto.UserId);
             if (user == null)
             {
                 return NotFound("User not found.");
@@ -113,7 +113,7 @@ namespace MyApp.Controllers
 
             cart.Quantity = cartDto.Quantity;
 
-            await _cartRepository.UpdateCartAsync(cart);
+            await _cartRepository.Update(cart);
 
             return NoContent();
         }

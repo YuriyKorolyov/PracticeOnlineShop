@@ -30,7 +30,7 @@ namespace MyApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ViewHistoryReadDto>>> GetViewHistoryByUser([FromQuery] int userId)
         {
-            var viewHistory = await _viewHistoryRepository.GetViewHistoryByUserId(userId)
+            var viewHistory = await _viewHistoryRepository.GetByUserId(userId)
                 .ProjectTo<ViewHistoryReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
@@ -43,10 +43,11 @@ namespace MyApp.Controllers
         [HttpGet("{viewId}")]
         public async Task<ActionResult<ViewHistoryReadDto>> GetViewHistory(int viewId)
         {
-            if (!await _viewHistoryRepository.ViewHistoryExistsAsync(viewId))
+            if (!await _viewHistoryRepository.Exists(viewId))
                 return NotFound();
 
-            var review = _mapper.Map<ViewHistoryReadDto>(await _viewHistoryRepository.GetViewHistoryByIdAsync(viewId));
+            var review = _mapper.Map<ViewHistoryReadDto>(await _viewHistoryRepository.GetById(viewId, query =>
+            query.Include(vh => vh.Product)));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -57,7 +58,7 @@ namespace MyApp.Controllers
         [HttpGet("product/{prodId}")]
         public async Task<ActionResult<int>> GetCountVHForAProduct(int prodId)
         {
-            var views = await _viewHistoryRepository.GetCountViewHistoryOfAProductAsync(prodId);
+            var views = await _viewHistoryRepository.GetCountViewHistoryOfAProduct(prodId);
 
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -76,10 +77,10 @@ namespace MyApp.Controllers
 
             var view = _mapper.Map<ViewHistory>(viewDto);
 
-            view.Product = await _productRepository.GetProductByIdAsync(viewDto.ProductId);
-            view.User = await _userRepository.GetUserByIdAsync(viewDto.UserId);
+            view.Product = await _productRepository.GetById(viewDto.ProductId);
+            view.User = await _userRepository.GetById(viewDto.UserId);
 
-            if (!await _viewHistoryRepository.CreateViewHistoryAsync(view))
+            if (!await _viewHistoryRepository.Add(view))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
@@ -98,16 +99,16 @@ namespace MyApp.Controllers
             if (viewId != updatedView.Id)
                 return BadRequest(ModelState);
 
-            if (!await _viewHistoryRepository.ViewHistoryExistsAsync(viewId))
+            if (!await _viewHistoryRepository.Exists(viewId))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var view = await _viewHistoryRepository.GetViewHistoryByIdAsync(viewId);
+            var view = await _viewHistoryRepository.GetById(viewId);
             view.ViewDate = updatedView.ViewDate;            
 
-            if (!await _viewHistoryRepository.UpdateViewHistoryAsync(view))
+            if (!await _viewHistoryRepository.Update(view))
             {
                 ModelState.AddModelError("", "Something went wrong updating viewhistory");
                 return StatusCode(500, ModelState);
@@ -119,14 +120,14 @@ namespace MyApp.Controllers
         [HttpDelete("/DeleteViewHistoryByUser/{userId}")]
         public async Task<IActionResult> DeleteViewHistoryByUser(int userId)
         {
-            if (!await _userRepository.UserExistsAsync(userId))
+            if (!await _userRepository.Exists(userId))
                 return NotFound();
 
-            var viewsToDelete = await _viewHistoryRepository.GetViewHistoryByUserIdAsync(userId);
+            var viewsToDelete = await _viewHistoryRepository.GetByUserId(userId).Select(vh => vh.Id).ToListAsync();
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            if (!await _viewHistoryRepository.DeleteViewHistoryAsync(viewsToDelete.ToList()))
+            if (!await _viewHistoryRepository.DeleteByIds(viewsToDelete))
             {
                 ModelState.AddModelError("", "error deleting reviews");
                 return StatusCode(500, ModelState);

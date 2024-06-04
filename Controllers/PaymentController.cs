@@ -30,7 +30,8 @@ namespace MyApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PaymentReadDto>>> GetPayments()
         {
-            var payments = await _paymentRepository.GetPayments()
+            var payments = await _paymentRepository.GetAll()
+                .Include(p => p.PromoCode)
                 .ProjectTo<PaymentReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
@@ -43,11 +44,14 @@ namespace MyApp.Controllers
         [HttpGet("{payId}")]
         public async Task<ActionResult<PaymentReadDto>> GetPayment(int payId)
         {
-            var payment = await _paymentRepository.GetPaymentByIdAsync(payId);
+            var payment = await _paymentRepository.GetById(payId, query =>
+            query.Include(p => p.PromoCode));
+
             if (payment == null)
             {
                 return NotFound();
             }
+
             var paymentDto = _mapper.Map<PaymentReadDto>(payment);
             return Ok(paymentDto);
         }
@@ -61,11 +65,11 @@ namespace MyApp.Controllers
             }
 
             var payment = _mapper.Map<Payment>(paymentDto);
-            payment.Order = await _orderRepository.GetOrderByIdAsync(paymentDto.OrderId);
+            payment.Order = await _orderRepository.GetById(paymentDto.OrderId);
 
             if (!string.IsNullOrEmpty(paymentDto.PromoName))
             {
-                var promoCode = await _promoCodeRepository.GetPromoCodeByNameAsync(paymentDto.PromoName);
+                var promoCode = await _promoCodeRepository.GetByName(paymentDto.PromoName);
                 if (promoCode != null && promoCode.EndDate > DateTime.UtcNow)
                 {
                     payment.PromoCode = promoCode;
@@ -76,7 +80,7 @@ namespace MyApp.Controllers
             payment.PaymentDate = DateTime.UtcNow;
             payment.Status = (PaymentStatus)new Random().Next(0, 3);
 
-            await _paymentRepository.AddPaymentAsync(payment);
+            await _paymentRepository.Add(payment);
 
             var createdPaymentDto = _mapper.Map<PaymentReadDto>(payment);
             return CreatedAtAction(nameof(GetPayment), new { id = createdPaymentDto.Id }, createdPaymentDto);
@@ -90,9 +94,9 @@ namespace MyApp.Controllers
                 return BadRequest();
             }
 
-            var payment = await _paymentRepository.GetPaymentByIdAsync(payId);
+            var payment = await _paymentRepository.GetById(payId);
 
-            var order = await _orderRepository.GetOrderByIdAsync(paymentDto.OrderId);
+            var order = await _orderRepository.GetById(paymentDto.OrderId);
             if (order == null)
             {
                 return NotFound("Order not found");
@@ -103,7 +107,7 @@ namespace MyApp.Controllers
 
             if (!string.IsNullOrEmpty(paymentDto.PromoName))
             {
-                var promoCode = await _promoCodeRepository.GetPromoCodeByNameAsync(paymentDto.PromoName);
+                var promoCode = await _promoCodeRepository.GetByName(paymentDto.PromoName);
                 if (promoCode != null && promoCode.EndDate > DateTime.UtcNow)
                 {
                     payment.PromoCode = promoCode;
@@ -113,7 +117,7 @@ namespace MyApp.Controllers
 
             payment.Status = paymentDto.Status;
 
-            await _paymentRepository.UpdatePaymentAsync(payment);
+            await _paymentRepository.Update(payment);
             return NoContent();
         }
     }

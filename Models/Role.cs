@@ -1,6 +1,8 @@
-﻿namespace MyApp.Models
+﻿using MyApp.Interfaces.BASE;
+
+namespace MyApp.Models
 {
-    public class Role
+    public class Role : IEntity
     {
         public int Id { get; set; }
         public string RoleName { get; set; }

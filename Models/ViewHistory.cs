@@ -1,9 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using MyApp.Interfaces.BASE;
 
 namespace MyApp.Models
 {
-    public class ViewHistory
+    public class ViewHistory : IEntity
     {
         public int Id { get; set; }
         public DateTime ViewDate { get; set; }

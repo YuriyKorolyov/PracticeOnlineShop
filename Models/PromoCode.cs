@@ -1,9 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using MyApp.Interfaces.BASE;
 
 namespace MyApp.Models
 {
-    public class PromoCode
+    public class PromoCode : IEntity
     {
         public int Id { get; set; }
         public string PromoName { get; set; }

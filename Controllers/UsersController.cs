@@ -26,7 +26,8 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
     {
-        var userDtos = await _userRepository.GetUsers()
+        var userDtos = await _userRepository.GetAll()
+            .Include(u => u.Role)
             .ProjectTo<UserReadDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -39,10 +40,11 @@ public class UsersController : ControllerBase
     [HttpGet("{userId}")]
     public async Task<ActionResult<UserReadDto>> GetUser(int userId)
     {
-        if (! await _userRepository.UserExistsAsync(userId))
+        if (! await _userRepository.Exists(userId))
             return NotFound();
 
-        var userDto = _mapper.Map<UserReadDto>(await _userRepository.GetUserByIdAsync(userId));
+        var userDto = _mapper.Map<UserReadDto>(await _userRepository.GetById(userId, query =>
+        query.Include(u => u.Role)));
 
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -60,9 +62,9 @@ public class UsersController : ControllerBase
             return BadRequest(ModelState);
         
         var user = _mapper.Map<User>(userDto);
-        user.Role = await _roleRepository.GetRoleByIdAsync(userDto.RoleId);
+        user.Role = await _roleRepository.GetById(userDto.RoleId);
 
-        if (! await _userRepository.AddUserAsync(user))
+        if (! await _userRepository.Add(user))
         {
             ModelState.AddModelError("", "Something went wrong while saving");
             return StatusCode(500, ModelState);
@@ -81,21 +83,21 @@ public class UsersController : ControllerBase
         if (userId != userDto.Id)
             return BadRequest(ModelState);
 
-        if (! await _userRepository.UserExistsAsync(userId))
+        if (! await _userRepository.Exists(userId))
             return NotFound();
 
         if (!ModelState.IsValid)
             return BadRequest();
         
-        var user = await _userRepository.GetUserByIdAsync(userId);
-        user.Role = await _roleRepository.GetRoleByIdAsync(userDto.RoleId);
+        var user = await _userRepository.GetById(userId);
+        user.Role = await _roleRepository.GetById(userDto.RoleId);
         user.FirstName = userDto.FirstName;
         user.LastName = userDto.LastName;
         user.Email = userDto.Email;
         user.PhoneNumber = userDto.PhoneNumber;
         user.ShippingAddress = userDto.ShippingAddress;
 
-        if (! await _userRepository.UpdateUserAsync(user))
+        if (! await _userRepository.Update(user))
         {
             ModelState.AddModelError("", "Something went wrong updating user");
             return StatusCode(500, ModelState);
@@ -107,17 +109,15 @@ public class UsersController : ControllerBase
     [HttpDelete("{userId}")]
     public async Task<IActionResult> DeleteUser(int userId)
     {
-        if (! await _userRepository.UserExistsAsync(userId))
+        if (! await _userRepository.Exists(userId))
         {
             return NotFound();
         }
 
-        var userToDelete = await _userRepository.GetUserByIdAsync(userId);
-
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        if (! await _userRepository.DeleteUserAsync(userToDelete))
+        if (! await _userRepository.DeleteById(userId))
         {
             ModelState.AddModelError("", "Something went wrong deleting user");
         }

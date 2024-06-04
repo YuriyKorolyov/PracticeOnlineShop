@@ -1,14 +1,11 @@
-﻿using MyApp.Models;
+﻿using MyApp.Interfaces.BASE;
+using MyApp.Models;
 
 namespace MyApp.Interfaces
 {
-    public interface ICartRepository
+    public interface ICartRepository : IBaseRepository<Cart>
     {
-        Task<Cart> GetCartByIdAsync(int cartId);
-        IQueryable<Cart> GetCartsByUserId(int userId);
-        Task AddToCartAsync(Cart cart);
-        Task RemoveFromCartAsync(int cartId);
-        Task ClearCartAsync(int userId);
-        Task UpdateCartAsync(Cart cart);
+        IQueryable<Cart> GetByUserId(int userId);
+        Task<bool> DeleteByUserId(int userId);
     }
 }

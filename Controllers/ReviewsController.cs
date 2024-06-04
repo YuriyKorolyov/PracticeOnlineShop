@@ -30,7 +30,10 @@ namespace MyApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviews()
         {
-            var reviews = _mapper.Map<List<ReviewReadDto>>(await _reviewRepository.GetReviewsAsync());
+            var reviews = await _reviewRepository.GetAll()
+                .Include(r => r.User)
+                .ProjectTo<ReviewReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -41,10 +44,11 @@ namespace MyApp.Controllers
         [HttpGet("{reviewId}")]
         public async Task<ActionResult<ReviewReadDto>> GetReview(int reviewId)
         {
-            if (! await _reviewRepository.ReviewExistsAsync(reviewId))
+            if (! await _reviewRepository.Exists(reviewId))
                 return NotFound();
 
-            var review = _mapper.Map<ReviewReadDto>(await _reviewRepository.GetReviewByIdAsync(reviewId));
+            var review = _mapper.Map<ReviewReadDto>(await _reviewRepository.GetById(reviewId, query =>
+            query.Include(r => r.User)));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -76,10 +80,10 @@ namespace MyApp.Controllers
 
             var review = _mapper.Map<Review>(reviewDto);
 
-            review.Product = await _productRepository.GetProductByIdAsync(reviewDto.ProductId);
-            review.User = await _userRepository.GetUserByIdAsync(reviewDto.UserId);
+            review.Product = await _productRepository.GetById(reviewDto.ProductId);
+            review.User = await _userRepository.GetById(reviewDto.UserId);
 
-            if (! await _reviewRepository.CreateReviewAsync(review))
+            if (! await _reviewRepository.Add(review))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
@@ -98,19 +102,19 @@ namespace MyApp.Controllers
             if (reviewId != updatedReview.Id)
                 return BadRequest(ModelState);
 
-            if (! await _reviewRepository.ReviewExistsAsync(reviewId))
+            if (! await _reviewRepository.Exists(reviewId))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var review = await _reviewRepository.GetReviewByIdAsync(reviewId);
+            var review = await _reviewRepository.GetById(reviewId);
 
-            review.Product = await _productRepository.GetProductByIdAsync(updatedReview.ProductId);
-            review.User = await _userRepository.GetUserByIdAsync(updatedReview.UserId);
+            review.Product = await _productRepository.GetById(updatedReview.ProductId);
+            review.User = await _userRepository.GetById(updatedReview.UserId);
             review.ReviewText = updatedReview.ReviewText;
 
-            if (! await _reviewRepository.UpdateReviewAsync(review))
+            if (! await _reviewRepository.Update(review))
             {
                 ModelState.AddModelError("", "Something went wrong updating review");
                 return StatusCode(500, ModelState);
@@ -122,17 +126,15 @@ namespace MyApp.Controllers
         [HttpDelete("{reviewId}")]
         public async Task<IActionResult> DeleteReview(int reviewId)
         {
-            if (! await _reviewRepository.ReviewExistsAsync(reviewId))
+            if (! await _reviewRepository.Exists(reviewId))
             {
                 return NotFound();
             }
 
-            var reviewToDelete = await _reviewRepository.GetReviewByIdAsync(reviewId);
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (! await _reviewRepository.DeleteReviewAsync(reviewToDelete))
+            if (! await _reviewRepository.DeleteById(reviewId))
             {
                 ModelState.AddModelError("", "Something went wrong deleting review");
             }
@@ -143,19 +145,18 @@ namespace MyApp.Controllers
         [HttpDelete("/DeleteReviewsByUser/{userId}")]
         public async Task<IActionResult> DeleteReviewsByUser(int userId)
         {
-            if (! await _userRepository.UserExistsAsync(userId))
+            if (!await _userRepository.Exists(userId))
                 return NotFound();
 
-            var reviewsToDelete = await _userRepository.GetReviewsByUserAsync(userId);
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            if (! await _reviewRepository.DeleteReviewsAsync(reviewsToDelete.ToList()))
+            if (!await _reviewRepository.DeleteByUserId(userId))
             {
                 ModelState.AddModelError("", "error deleting reviews");
                 return StatusCode(500, ModelState);
             }
             return NoContent();
-        }    
+        }
     }
 }

@@ -1,17 +1,11 @@
 ﻿using MyApp.Dto;
+using MyApp.Interfaces.BASE;
 using MyApp.Models;
 
 namespace MyApp.Interfaces
 {
-    public interface IOrderRepository
+    public interface IOrderRepository : IBaseRepository<Order>  
     {
-        IQueryable<Order> GetOrders();
-        Task<Order> GetOrderByIdAsync(int id);
-        Task<IEnumerable<OrderDetail>> GetOrderDetailsByUserAsync(int userId);
-        Task<bool> CreateOrderAsync(Order order);
-        Task<bool> UpdateOrderAsync(Order order);
-        Task<bool> DeleteOrderAsync(Order order);
-        Task<bool> SaveAsync();
-        Task<bool> OrderExistsAsync(int id);
+        Task<IEnumerable<OrderDetail>> GetOrderDetailsByUserId(int userId);
     }
 }

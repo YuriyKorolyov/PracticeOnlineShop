@@ -26,7 +26,7 @@ namespace MyApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PromoCodeReadDto>>> GetPromos()
         {
-            var promos = await _promoCodeRepository.GetPromoCodes()
+            var promos = await _promoCodeRepository.GetAll()
                 .ProjectTo<PromoCodeReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
@@ -39,10 +39,10 @@ namespace MyApp.Controllers
         [HttpGet("{promoId}")]
         public async Task<ActionResult<PromoCodeReadDto>> GetPromo(int promoId)
         {
-            if (!await _promoCodeRepository.PromoCodeExistsAsync(promoId))
+            if (!await _promoCodeRepository.Exists(promoId))
                 return NotFound();
 
-            var promo = _mapper.Map<PromoCodeReadDto>(await _promoCodeRepository.GetPromoCodeByIdAsync(promoId));
+            var promo = _mapper.Map<PromoCodeReadDto>(await _promoCodeRepository.GetById(promoId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -61,7 +61,7 @@ namespace MyApp.Controllers
 
             var promo = _mapper.Map<PromoCode>(promoDto);
 
-            if (!await _promoCodeRepository.CreatePromoCodeAsync(promo))
+            if (!await _promoCodeRepository.Add(promo))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
@@ -80,18 +80,18 @@ namespace MyApp.Controllers
             if (promoId != updatedPromo.Id)
                 return BadRequest(ModelState);
 
-            if (!await _promoCodeRepository.PromoCodeExistsAsync(promoId))
+            if (!await _promoCodeRepository.Exists(promoId))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var promo = await _promoCodeRepository.GetPromoCodeByIdAsync(promoId);
+            var promo = await _promoCodeRepository.GetById(promoId);
             promo.StartDate = updatedPromo.StartDate;
             promo.EndDate = updatedPromo.EndDate;
             promo.PromoName = updatedPromo.PromoName;
 
-            if (!await _promoCodeRepository.UpdatePromoCodeAsync(promo))
+            if (!await _promoCodeRepository.Update(promo))
             {
                 ModelState.AddModelError("", "Something went wrong updating review");
                 return StatusCode(500, ModelState);
@@ -103,17 +103,15 @@ namespace MyApp.Controllers
         [HttpDelete("{promoId}")]
         public async Task<IActionResult> DeletePromo(int promoId)
         {
-            if (!await _promoCodeRepository.PromoCodeExistsAsync(promoId))
+            if (!await _promoCodeRepository.Exists(promoId))
             {
                 return NotFound();
             }
 
-            var promoToDelete = await _promoCodeRepository.GetPromoCodeByIdAsync(promoId);
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (!await _promoCodeRepository.DeletePromoCodeAsync(promoToDelete))
+            if (!await _promoCodeRepository.DeleteById(promoId))
             {
                 ModelState.AddModelError("", "Something went wrong deleting review");
             }

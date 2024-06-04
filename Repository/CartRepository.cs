@@ -2,61 +2,29 @@
 using MyApp.Data;
 using MyApp.Interfaces;
 using MyApp.Models;
+using MyApp.Repository.BASE;
 
 namespace MyApp.Repository
 {
-    public class CartRepository : ICartRepository
+    public class CartRepository : BaseRepository<Cart>, ICartRepository
     {
-        private readonly ApplicationDbContext _context;
-
-        public CartRepository(ApplicationDbContext context)
+        public CartRepository(ApplicationDbContext context) : base(context)
         {
-            _context = context;
         }
 
-        public async Task AddToCartAsync(Cart cart)
+        public async Task<bool> DeleteByUserId(int userId)
         {
-            _context.Carts.Add(cart);
-            await _context.SaveChangesAsync();
+            var cartItems = await GetAll().Where(c => c.User.Id == userId).ToListAsync();
+            _context.Carts.RemoveRange(cartItems);
+
+            return await SaveAsync();
         }
 
-        public async Task ClearCartAsync(int userId)
+        public IQueryable<Cart> GetByUserId(int userId)
         {
-            var cartsToRemove = await _context.Carts
-                                          .Where(cart => cart.User.Id == userId)
-                                          .ToListAsync();
-            if (cartsToRemove.Any())
-            {
-                _context.Carts.RemoveRange(cartsToRemove);
-                await _context.SaveChangesAsync();
-            }
-        }
-        public async Task<Cart> GetCartByIdAsync(int cartId)
-        {
-            return await _context.Carts.Where(cart => cart.Id == cartId).FirstOrDefaultAsync();
-        }
-
-        public async Task RemoveFromCartAsync(int cartId)
-        {
-            var cart = await _context.Carts.FindAsync(cartId);
-            if (cart != null)
-            {
-                _context.Carts.Remove(cart);
-                await _context.SaveChangesAsync();
-            }
-        }
-
-        public async Task UpdateCartAsync(Cart cart)
-        {
-            _context.Carts.Update(cart);
-            await _context.SaveChangesAsync();
-        }
-
-        IQueryable<Cart> ICartRepository.GetCartsByUserId(int userId)
-        {
-            return _context.Carts
-                .Include(cart => cart.Product)
+            return GetAll()
                 .Where(cart => cart.User.Id == userId)
+                .Include(cart => cart.Product)
                 .AsQueryable();
         }
     }

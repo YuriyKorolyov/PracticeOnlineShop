@@ -26,7 +26,7 @@ namespace MyApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CategoryReadDto>>> GetCategories()
         {
-            var categories = await _categoryRepository.GetCategories()
+            var categories = await _categoryRepository.GetAll()
                 .ProjectTo<CategoryReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
@@ -39,10 +39,10 @@ namespace MyApp.Controllers
         [HttpGet("{categoryId}")]
         public async Task<ActionResult<CategoryReadDto>> GetCategory(int categoryId)
         {
-            if (! await _categoryRepository.CategoryExistsAsync(categoryId))
+            if (! await _categoryRepository.Exists(categoryId))
                 return NotFound();
 
-            var category = _mapper.Map<CategoryReadDto>(await _categoryRepository.GetCategoryByIdAsync(categoryId));
+            var category = _mapper.Map<CategoryReadDto>(await _categoryRepository.GetById(categoryId));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -80,7 +80,7 @@ namespace MyApp.Controllers
 
             var categoryMap = _mapper.Map<Category>(categoryCreate);
 
-            if (! await _categoryRepository.CreateCategoryAsync(categoryMap))
+            if (! await _categoryRepository.Add(categoryMap))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
@@ -99,16 +99,16 @@ namespace MyApp.Controllers
             if (categoryId != updatedCategory.Id)
                 return BadRequest(ModelState);
 
-            if (! await _categoryRepository.CategoryExistsAsync(categoryId))
+            if (! await _categoryRepository.Exists(categoryId))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var categoryMap = await _categoryRepository.GetCategoryByIdAsync(categoryId);
+            var categoryMap = await _categoryRepository.GetById(categoryId);
             categoryMap.CategoryName = updatedCategory.CategoryName;
 
-            if (! await _categoryRepository.UpdateCategoryAsync(categoryMap))
+            if (! await _categoryRepository.Update(categoryMap))
             {
                 ModelState.AddModelError("", "Something went wrong updating category");
                 return StatusCode(500, ModelState);
@@ -120,17 +120,15 @@ namespace MyApp.Controllers
         [HttpDelete("{categoryId}")]
         public async Task<IActionResult> DeleteCategory(int categoryId)
         {
-            if (! await _categoryRepository.CategoryExistsAsync(categoryId))
+            if (! await _categoryRepository.Exists(categoryId))
             {
                 return NotFound();
             }
 
-            var categoryToDelete = await _categoryRepository.GetCategoryByIdAsync(categoryId);
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (! await _categoryRepository.DeleteCategoryAsync(categoryToDelete))
+            if (! await _categoryRepository.DeleteById(categoryId))
             {
                 ModelState.AddModelError("", "Something went wrong deleting category");
             }

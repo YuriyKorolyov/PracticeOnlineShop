@@ -1,15 +1,9 @@
-﻿using MyApp.Models;
+﻿using MyApp.Interfaces.BASE;
+using MyApp.Models;
 
 namespace MyApp.Interfaces
 {
-    public interface IUserRepository
+    public interface IUserRepository : IBaseRepository<User>
     {
-        IQueryable<User> GetUsers();
-        Task<User> GetUserByIdAsync(int userId);
-        Task<bool> AddUserAsync(User user);
-        Task<bool> UpdateUserAsync(User user);
-        Task<bool> DeleteUserAsync(User user);
-        Task<bool> UserExistsAsync(int userId);
-        Task<bool> SaveAsync();
     }
 }

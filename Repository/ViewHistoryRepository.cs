@@ -2,61 +2,27 @@
 using MyApp.Data;
 using MyApp.Interfaces;
 using MyApp.Models;
+using MyApp.Repository.BASE;
 
 namespace MyApp.Repository
 {
-    public class ViewHistoryRepository : IViewHistoryRepository
+    public class ViewHistoryRepository : BaseRepository<ViewHistory>, IViewHistoryRepository
     {
-        private readonly ApplicationDbContext _context;
-        public ViewHistoryRepository(ApplicationDbContext context)
+        public ViewHistoryRepository(ApplicationDbContext context) : base(context)
         {
-            _context = context;
         }
-        public async Task<bool> CreateViewHistoryAsync(ViewHistory viewHistory)
+        public async Task<int> GetCountViewHistoryOfAProduct(int prodId)
         {
-            _context.Add(viewHistory);
-            return await SaveAsync();
+            return await GetAll()
+                .Where(vh => vh.Product.Id == prodId)
+                .CountAsync();
         }
-
-        public async Task<bool> DeleteViewHistoryAsync(List<ViewHistory> viewHistories)
+        public IQueryable<ViewHistory> GetByUserId(int userId)
         {
-            _context.RemoveRange(viewHistories);
-            return await SaveAsync();
-        }
-
-        public async Task<int> GetCountViewHistoryOfAProductAsync(int prodId)
-        {
-            return await _context.ViewHistories.Where(vh => vh.Product.Id == prodId).CountAsync();
-        }
-
-        public async Task<ViewHistory> GetViewHistoryByIdAsync(int viewId)
-        {
-            return await _context.ViewHistories.Where(vh => vh.Id == viewId).Include(vh => vh.Product).FirstOrDefaultAsync();
-        }
-
-        public IQueryable<ViewHistory> GetViewHistoryByUserId(int userId)
-        {
-            return _context.ViewHistories
+            return GetAll()
                 .Where(vh => vh.User.Id == userId)
                 .Include(vh => vh.Product)
                 .AsQueryable();
-        }
-
-        public async Task<bool> SaveAsync()
-        {
-            var saved = await _context.SaveChangesAsync();
-            return saved > 0;
-        }
-
-        public async Task<bool> UpdateViewHistoryAsync(ViewHistory viewHistory)
-        {
-            _context.Update(viewHistory);
-            return await SaveAsync();
-        }
-
-        public async Task<bool> ViewHistoryExistsAsync(int vhId)
-        {
-            return await _context.ViewHistories.AnyAsync(vh => vh.Id == vhId);
         }
     }
 }

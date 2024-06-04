@@ -1,9 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using MyApp.Interfaces.BASE;
 
 namespace MyApp.Models
 {
-    public class OrderDetail
+    public class OrderDetail : IEntity
     {
         public int Id { get; set; }
         public int Quantity { get; set; }
