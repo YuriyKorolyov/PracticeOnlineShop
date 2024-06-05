@@ -10,6 +10,9 @@ using MyApp.Models;
 
 namespace MyApp.Controllers
 {
+    /// <summary>
+    /// Контроллер для управления платежами.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class PaymentController : ControllerBase
@@ -19,6 +22,13 @@ namespace MyApp.Controllers
         private readonly IPromoCodeRepository _promoCodeRepository;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="PaymentController"/>.
+        /// </summary>
+        /// <param name="paymentRepository">Репозиторий для работы с платежами.</param>
+        /// <param name="orderRepository">Репозиторий для работы с заказами.</param>
+        /// <param name="promoCodeRepository">Репозиторий для работы с промокодами.</param>
+        /// <param name="mapper">Интерфейс для маппинга объектов.</param>
         public PaymentController(IPaymentRepository paymentRepository, IOrderRepository orderRepository, IPromoCodeRepository promoCodeRepository, IMapper mapper)
         {
             _paymentRepository = paymentRepository;
@@ -27,6 +37,11 @@ namespace MyApp.Controllers
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Получает список всех платежей.
+        /// </summary>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Список платежей.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PaymentReadDto>>> GetPayments(CancellationToken cancellationToken)
         {
@@ -41,6 +56,12 @@ namespace MyApp.Controllers
             return Ok(payments);
         }
 
+        /// <summary>
+        /// Получает платеж по его идентификатору.
+        /// </summary>
+        /// <param name="payId">Идентификатор платежа.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Платеж.</returns>
         [HttpGet("{payId}")]
         public async Task<ActionResult<PaymentReadDto>> GetPayment(int payId, CancellationToken cancellationToken)
         {
@@ -57,6 +78,12 @@ namespace MyApp.Controllers
             return Ok(paymentDto);
         }
 
+        /// <summary>
+        /// Добавляет новый платеж.
+        /// </summary>
+        /// <param name="paymentDto">Данные нового платежа.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Добавленный платеж.</returns>
         [HttpPost]
         public async Task<ActionResult<PaymentReadDto>> AddPayment(PaymentCreateDto paymentDto, CancellationToken cancellationToken)
         {
@@ -87,6 +114,13 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetPayment), new { payId = createdPaymentDto.Id }, createdPaymentDto);
         }
 
+        /// <summary>
+        /// Обновляет информацию о платеже.
+        /// </summary>
+        /// <param name="payId">Идентификатор платежа, который нужно обновить.</param>
+        /// <param name="paymentDto">Данные для обновления платежа.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpPut("{payId}")]
         public async Task<IActionResult> UpdatePayment(int payId, PaymentUpdateDto paymentDto, CancellationToken cancellationToken)
         {

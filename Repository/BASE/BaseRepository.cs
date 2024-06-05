@@ -5,17 +5,23 @@ using System.Linq.Expressions;
 
 namespace MyApp.Repository.BASE
 {
+    /// <summary>
+    /// Репозиторий для базовых операций с сущностями.
+    /// </summary>
+    /// <typeparam name="TEntity">Тип сущности.</typeparam>
     public class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class, IEntity, new()
     {
         protected readonly ApplicationDbContext _context;
         protected readonly DbSet<TEntity> _dbSet;
 
+        /// <inheritdoc/>
         public BaseRepository(ApplicationDbContext context)
         {
             _context = context;
             _dbSet = _context.Set<TEntity>();
         }
 
+        /// <inheritdoc/>
         public async Task<bool> Exists(int id, CancellationToken cancellationToken = default)
         {
             return await _dbSet.AnyAsync(e => e.Id == id);
@@ -25,16 +31,22 @@ namespace MyApp.Repository.BASE
         //{
         //    return _dbSet.AsQueryable();
         //}
+
+        /// <inheritdoc/>
         public IQueryable<TEntity> GetAll()
         {
             return _dbSet.AsNoTracking();
         }
+
+        /// <inheritdoc/>
         public async Task<TEntity> GetById(int id, CancellationToken cancellationToken = default)
         {
             return await _dbSet
                 .Where(e => e.Id == id)
                 .FirstOrDefaultAsync(cancellationToken);
         }
+
+        /// <inheritdoc/>
         public async Task<TEntity> GetById(int id, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties)
         {
             var query = _dbSet.Where(e => e.Id == id);
@@ -46,6 +58,8 @@ namespace MyApp.Repository.BASE
 
             return await query.FirstOrDefaultAsync(cancellationToken);
         }
+
+        /// <inheritdoc/>
         public async Task<TEntity> GetById(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> include, CancellationToken cancellationToken)
         {
             IQueryable<TEntity> query = _dbSet.Where(e => e.Id == id);
@@ -57,6 +71,8 @@ namespace MyApp.Repository.BASE
 
             return await query.FirstOrDefaultAsync(cancellationToken);
         }
+
+        /// <inheritdoc/>
         public async Task<bool> Add(TEntity entity, CancellationToken cancellationToken = default)
         {
             await _dbSet.AddAsync(entity, cancellationToken);
@@ -64,6 +80,7 @@ namespace MyApp.Repository.BASE
             return await SaveAsync(cancellationToken);
         }
 
+        /// <inheritdoc/>
         public async Task<bool> Update(TEntity entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Attach(entity);
@@ -72,6 +89,7 @@ namespace MyApp.Repository.BASE
             return await SaveAsync(cancellationToken);
         }
 
+        /// <inheritdoc/>
         public async Task<bool> Delete(TEntity entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Remove(entity);
@@ -88,6 +106,7 @@ namespace MyApp.Repository.BASE
             return await SaveAsync(cancellationToken);
         }
 
+        /// <inheritdoc/>
         public async Task<bool> DeleteByIds(IEnumerable<int> ids, CancellationToken cancellationToken = default)
         {           
             //var entities = ids.Select(id => (TEntity)Activator.CreateInstance(typeof(TEntity), id)).ToList();
@@ -98,11 +117,13 @@ namespace MyApp.Repository.BASE
             return await SaveAsync(cancellationToken);
         }
 
+        /// <inheritdoc/>
         public async Task<bool> SaveAsync(CancellationToken cancellationToken = default)
         {
             return await _context.SaveChangesAsync(cancellationToken) > 0;
         }
 
+        /// <inheritdoc/>
         public async Task<IEnumerable<TEntity>> GetByIds(IEnumerable<int> ids, CancellationToken cancellationToken = default)
         {
             return await _dbSet

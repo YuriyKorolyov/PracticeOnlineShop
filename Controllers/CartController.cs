@@ -10,6 +10,9 @@ using MyApp.Models;
 
 namespace MyApp.Controllers
 {
+    /// <summary>
+    /// Контроллер для управления корзиной.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class CartController : ControllerBase
@@ -19,6 +22,13 @@ namespace MyApp.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="CartController"/>.
+        /// </summary>
+        /// <param name="cartRepository">Репозиторий для работы с корзиной.</param>
+        /// <param name="productRepository">Репозиторий для работы с продуктами.</param>
+        /// <param name="userRepository">Репозиторий для работы с пользователями.</param>
+        /// <param name="mapper">Интерфейс для маппинга объектов.</param>
         public CartController(ICartRepository cartRepository, IProductRepository productRepository, IUserRepository userRepository, IMapper mapper)
         {
             _cartRepository = cartRepository;
@@ -27,15 +37,27 @@ namespace MyApp.Controllers
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Получает корзину пользователя по его идентификатору.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Список корзин пользователя.</returns>
         [HttpGet("{userId}")]
         public async Task<ActionResult<IEnumerable<CartReadDto>>> GetCartsByUserId(int userId, CancellationToken cancellationToken)
         {
             var carts = await _cartRepository.GetByUserId(userId)
             .ProjectTo<CartReadDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
-            return Ok(carts);            
+            return Ok(carts);
         }
 
+        /// <summary>
+        /// Добавляет продукт в корзину.
+        /// </summary>
+        /// <param name="cartDto">Данные для создания корзины.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Созданная корзина.</returns>
         [HttpPost]
         public async Task<ActionResult<CartReadDto>> AddToCart([FromBody] CartCreateDto cartDto, CancellationToken cancellationToken)
         {
@@ -60,6 +82,12 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetCartsByUserId), new { userId = cartDto.UserId }, createdCartDto);
         }
 
+        /// <summary>
+        /// Удаляет продукт из корзины по его идентификатору.
+        /// </summary>
+        /// <param name="cartId">Идентификатор корзины.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("{cartId}")]
         public async Task<IActionResult> RemoveFromCart(int cartId, CancellationToken cancellationToken)
         {
@@ -67,6 +95,13 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Обновляет информацию в корзине.
+        /// </summary>
+        /// <param name="cartId">Идентификатор корзины.</param>
+        /// <param name="cartDto">Данные для обновления корзины.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("{userId}/clear")]
         public async Task<IActionResult> ClearCart(int userId, CancellationToken cancellationToken)
         {
@@ -74,6 +109,13 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Обновляет информацию в корзине.
+        /// </summary>
+        /// <param name="cartId">Идентификатор корзины.</param>
+        /// <param name="cartDto">Данные для обновления корзины.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpPut("{cartId}")]
         public async Task<IActionResult> UpdateCart(int cartId, [FromBody] CartUpdateDto cartDto, CancellationToken cancellationToken)
         {

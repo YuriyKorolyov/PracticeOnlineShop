@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности Cart.
+    /// </summary>
     public class CartConfiguration : IEntityTypeConfiguration<Cart>
     {
+        /// <summary>
+        /// Настраивает сущность Cart.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности Cart.</param>
         public void Configure(EntityTypeBuilder<Cart> builder)
         {
             builder.HasKey(c => c.Id);

@@ -10,6 +10,9 @@ using MyApp.Models;
 
 namespace MyApp.Controllers
 {
+    /// <summary>
+    /// Контроллер для управления отзывами.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class ReviewsController : ControllerBase
@@ -19,6 +22,13 @@ namespace MyApp.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IProductRepository _productRepository;
 
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="ReviewsController"/>.
+        /// </summary>
+        /// <param name="reviewRepository">Репозиторий для управления отзывами.</param>
+        /// <param name="mapper">Интерфейс для отображения объектов.</param>
+        /// <param name="productRepository">Репозиторий для управления продуктами.</param>
+        /// <param name="userRepository">Репозиторий для управления пользователями.</param>
         public ReviewsController(IReviewRepository reviewRepository, IMapper mapper, IProductRepository productRepository, IUserRepository userRepository)
         {
             _reviewRepository = reviewRepository;
@@ -27,6 +37,11 @@ namespace MyApp.Controllers
             _mapper = mapper;            
         }
 
+        /// <summary>
+        /// Получает все отзывы.
+        /// </summary>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Список отзывов.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviews(CancellationToken cancellationToken)
         {
@@ -41,6 +56,12 @@ namespace MyApp.Controllers
             return Ok(reviews);
         }
 
+        /// <summary>
+        /// Получает отзыв по его идентификатору.
+        /// </summary>
+        /// <param name="reviewId">Идентификатор отзыва.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Отзыв.</returns>
         [HttpGet("{reviewId}")]
         public async Task<ActionResult<ReviewReadDto>> GetReview(int reviewId, CancellationToken cancellationToken)
         {
@@ -57,6 +78,12 @@ namespace MyApp.Controllers
             return Ok(review);
         }
 
+        /// <summary>
+        /// Получает отзывы для продукта.
+        /// </summary>
+        /// <param name="prodId">Идентификатор продукта.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Отзывы для продукта.</returns>
         [HttpGet("product/{prodId}")]
         public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviewsForAProduct(int prodId, CancellationToken cancellationToken)
         {
@@ -70,6 +97,12 @@ namespace MyApp.Controllers
             return Ok(reviews);
         }
 
+        /// <summary>
+        /// Создает новый отзыв.
+        /// </summary>
+        /// <param name="reviewDto">Данные отзыва.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Созданный отзыв.</returns>
         [HttpPost]
         public async Task<ActionResult> CreateReview([FromBody] ReviewCreateDto reviewDto, CancellationToken cancellationToken)
         {
@@ -94,6 +127,13 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetReview), new { reviewId = createdReviewDto.Id }, createdReviewDto);
         }
 
+        /// <summary>
+        /// Обновляет отзыв.
+        /// </summary>
+        /// <param name="reviewId">Идентификатор отзыва для обновления.</param>
+        /// <param name="updatedReview">Обновленные данные отзыва.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Обновленный отзыв.</returns>
         [HttpPut("{reviewId}")]
         public async Task<IActionResult> UpdateReview(int reviewId, [FromBody] ReviewUpdateDto updatedReview, CancellationToken cancellationToken)
         {
@@ -124,6 +164,12 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Удаляет отзыв.
+        /// </summary>
+        /// <param name="reviewId">Идентификатор отзыва для удаления.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("{reviewId}")]
         public async Task<IActionResult> DeleteReview(int reviewId, CancellationToken cancellationToken)
         {
@@ -143,6 +189,12 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Удаляет отзывы конкретного пользователя.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("/DeleteReviewsByUser/{userId}")]
         public async Task<IActionResult> DeleteReviewsByUser(int userId, CancellationToken cancellationToken)
         {

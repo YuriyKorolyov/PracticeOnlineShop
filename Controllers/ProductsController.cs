@@ -2,17 +2,17 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MyApp.Dto;
 using MyApp.Dto.Create;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
 using MyApp.Interfaces;
 using MyApp.Models;
-using MyApp.Repository;
-using System.Threading;
 
 namespace MyApp.Controllers
 {
+    /// <summary>
+    /// Контроллер для управления продуктами.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
@@ -22,6 +22,13 @@ namespace MyApp.Controllers
         private readonly ICategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="ProductsController"/>.
+        /// </summary>
+        /// <param name="productRepository">Репозиторий для работы с продуктами.</param>
+        /// <param name="reviewRepository">Репозиторий для работы с отзывами.</param>
+        /// <param name="categoryRepository">Репозиторий для работы с категориями.</param>
+        /// <param name="mapper">Интерфейс для маппинга объектов.</param>
         public ProductsController(IProductRepository productRepository, IReviewRepository reviewRepository, ICategoryRepository categoryRepository, IMapper mapper)
         {
             _productRepository = productRepository;
@@ -30,6 +37,11 @@ namespace MyApp.Controllers
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Получает список всех продуктов.
+        /// </summary>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Список продуктов.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductReadDto>>> GetProducts(CancellationToken cancellationToken)
         {
@@ -45,6 +57,12 @@ namespace MyApp.Controllers
             return Ok(productDtos);
         }
 
+        /// <summary>
+        /// Получает информацию о продукте по его идентификатору.
+        /// </summary>
+        /// <param name="prodId">Идентификатор продукта.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Информация о продукте.</returns>
         [HttpGet("{prodId}")]
         public async Task<ActionResult<ProductReadDto>> GetProduct(int prodId, CancellationToken cancellationToken)
         {
@@ -62,7 +80,12 @@ namespace MyApp.Controllers
             return Ok(product);
         }
 
-
+        /// <summary>
+        /// Получает рейтинг продукта по его идентификатору.
+        /// </summary>
+        /// <param name="prodId">Идентификатор продукта.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Рейтинг продукта.</returns>
         [HttpGet("{prodId}/rating")]
         public async Task<ActionResult<decimal>> GetProductRating(int prodId, CancellationToken cancellationToken)
         {
@@ -77,6 +100,12 @@ namespace MyApp.Controllers
             return Ok(rating);
         }
 
+        /// <summary>
+        /// Добавляет новый продукт.
+        /// </summary>
+        /// <param name="productDto">Данные нового продукта.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Добавленный продукт.</returns>
         [HttpPost]
         public async Task<ActionResult<ProductReadDto>> PostProduct([FromBody] ProductCreateDto productDto, CancellationToken cancellationToken)
         {
@@ -114,6 +143,13 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetProduct), new { prodId = createdProductDto.Id }, createdProductDto);
         }
 
+        /// <summary>
+        /// Обновляет информацию о продукте.
+        /// </summary>
+        /// <param name="prodId">Идентификатор продукта, который нужно обновить.</param>
+        /// <param name="productDto">Данные для обновления продукта.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpPut("{prodId}")]
         public async Task<IActionResult> PutProduct(int prodId, [FromBody] ProductUpdateDto productDto, CancellationToken cancellationToken)
         {
@@ -143,6 +179,12 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Удаляет продукт по его идентификатору.
+        /// </summary>
+        /// <param name="prodId">Идентификатор продукта.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("{prodId}")]
         public async Task<IActionResult> DeleteProduct(int prodId, CancellationToken cancellationToken)
         {

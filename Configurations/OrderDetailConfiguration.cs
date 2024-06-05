@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности OrderDetail.
+    /// </summary>
     public class OrderDetailConfiguration : IEntityTypeConfiguration<OrderDetail>
     {
+        /// <summary>
+        /// Настраивает сущность OrderDetail.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности OrderDetail.</param>
         public void Configure(EntityTypeBuilder<OrderDetail> builder)
         {
             builder.HasKey(od => od.Id);

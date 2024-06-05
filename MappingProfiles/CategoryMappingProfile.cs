@@ -6,8 +6,14 @@ using MyApp.Models;
 
 namespace MyApp.MappingProfiles
 {
+    /// <summary>
+    /// Профиль отображения для сущности категории.
+    /// </summary>
     public class CategoryMappingProfile : Profile
     {
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="CategoryMappingProfile"/>.
+        /// </summary>
         public CategoryMappingProfile()
         {
             CreateMap<CategoryCreateDto, Category>();

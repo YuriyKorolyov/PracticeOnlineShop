@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности PromoCode.
+    /// </summary>
     public class PromoCodeConfiguration : IEntityTypeConfiguration<PromoCode>
     {
+        /// <summary>
+        /// Настраивает сущность PromoCode.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности PromoCode.</param>
         public void Configure(EntityTypeBuilder<PromoCode> builder)
         {
             builder.HasKey(pc => pc.Id);

@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности Review.
+    /// </summary>
     public class ReviewConfiguration : IEntityTypeConfiguration<Review>
     {
+        /// <summary>
+        /// Настраивает сущность Review.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности Review.</param>
         public void Configure(EntityTypeBuilder<Review> builder)
         {
             builder.HasKey(r => r.Id);

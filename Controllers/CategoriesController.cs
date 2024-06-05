@@ -10,6 +10,9 @@ using MyApp.Models;
 
 namespace MyApp.Controllers
 {
+    /// <summary>
+    /// Контроллер для управления категориями.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class CategoriesController : ControllerBase
@@ -17,12 +20,22 @@ namespace MyApp.Controllers
         private readonly ICategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="CategoriesController"/>.
+        /// </summary>
+        /// <param name="categoryRepository">Репозиторий для работы с категориями.</param>
+        /// <param name="mapper">Интерфейс для маппинга объектов.</param>
         public CategoriesController(ICategoryRepository categoryRepository, IMapper mapper)
         {
             _categoryRepository = categoryRepository;
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Получает список всех категорий.
+        /// </summary>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Список категорий.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CategoryReadDto>>> GetCategories(CancellationToken cancellationToken)
         {
@@ -35,7 +48,13 @@ namespace MyApp.Controllers
 
             return Ok(categories);
         }
-            
+
+        /// <summary>
+        /// Получает категорию по ее идентификатору.
+        /// </summary>
+        /// <param name="categoryId">Идентификатор категории.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Категория.</returns
         [HttpGet("{categoryId}")]
         public async Task<ActionResult<CategoryReadDto>> GetCategory(int categoryId, CancellationToken cancellationToken)
         {
@@ -50,6 +69,12 @@ namespace MyApp.Controllers
             return Ok(category);
         }
 
+        /// <summary>
+        /// Получает продукты по идентификатору категории.
+        /// </summary>
+        /// <param name="categoryId">Идентификатор категории.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Список продуктов.</returns>
         [HttpGet("product/{categoryId}")]
         public async Task<ActionResult<int>> GetProductByCategoryId(int categoryId, CancellationToken cancellationToken)
         {
@@ -63,6 +88,12 @@ namespace MyApp.Controllers
             return Ok(products);
         }
 
+        /// <summary>
+        /// Создает новую категорию.
+        /// </summary>
+        /// <param name="categoryCreate">Данные для создания категории.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Созданная категория.</returns>
         [HttpPost]
         public async Task<ActionResult<CategoryReadDto>> CreateCategory([FromBody] CategoryCreateDto categoryCreate, CancellationToken cancellationToken)
         {
@@ -92,6 +123,13 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetCategory), new { categoryId = createdCategoryDto.Id }, createdCategoryDto);
         }
 
+        /// <summary>
+        /// Обновляет существующую категорию.
+        /// </summary>
+        /// <param name="categoryId">Идентификатор категории.</param>
+        /// <param name="updatedCategory">Данные для обновления категории.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpPut("{categoryId}")]
         public async Task<IActionResult> UpdateCategory(int categoryId, [FromBody] CategoryUpdateDto updatedCategory, CancellationToken cancellationToken)
         {
@@ -119,6 +157,12 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Удаляет категорию по ее идентификатору.
+        /// </summary>
+        /// <param name="categoryId">Идентификатор категории.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("{categoryId}")]
         public async Task<IActionResult> DeleteCategory(int categoryId, CancellationToken cancellationToken)
         {

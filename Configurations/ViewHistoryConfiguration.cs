@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности ViewHistory.
+    /// </summary>
     public class ViewHistoryConfiguration : IEntityTypeConfiguration<ViewHistory>
     {
+        /// <summary>
+        /// Настраивает сущность ViewHistory.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности ViewHistory.</param>
         public void Configure(EntityTypeBuilder<ViewHistory> builder)
         {
             builder.HasKey(v => v.Id);

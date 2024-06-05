@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности Role.
+    /// </summary>
     public class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
+        /// <summary>
+        /// Настраивает сущность Role.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности Role.</param>
         public void Configure(EntityTypeBuilder<Role> builder)
         {
             builder.HasKey(r => r.Id);

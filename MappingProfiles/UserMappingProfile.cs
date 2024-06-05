@@ -6,8 +6,14 @@ using MyApp.Models;
 
 namespace MyApp.MappingProfiles
 {
+    /// <summary>
+    /// Профиль отображения для пользователей.
+    /// </summary>
     public class UserMappingProfile : Profile
     {
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="UserMappingProfile"/>.
+        /// </summary>
         public UserMappingProfile()
         {
             CreateMap<UserCreateDto, User>()

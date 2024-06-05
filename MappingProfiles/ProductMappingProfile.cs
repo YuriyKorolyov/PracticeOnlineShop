@@ -6,8 +6,14 @@ using MyApp.Models;
 
 namespace MyApp.MappingProfiles
 {
+    /// <summary>
+    /// Профиль отображения для сущности продукта.
+    /// </summary>
     public class ProductMappingProfile : Profile
     {
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="ProductMappingProfile"/>.
+        /// </summary>
         public ProductMappingProfile()
         {
             CreateMap<ProductCreateDto, Product>();

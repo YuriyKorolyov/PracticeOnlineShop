@@ -1,6 +1,4 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
 using MyApp.Dto.Create;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
@@ -8,8 +6,14 @@ using MyApp.Models;
 
 namespace MyApp.MappingProfiles
 {
+    /// <summary>
+    /// Профиль отображения для истории просмотров.
+    /// </summary>
     public class ViewHistoryMappingProfile : Profile
     {
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="ViewHistoryMappingProfile"/>.
+        /// </summary>
         public ViewHistoryMappingProfile()
         {
             CreateMap<ViewHistoryCreateDto, ViewHistory>()

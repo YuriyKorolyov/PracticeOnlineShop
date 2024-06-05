@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности User.
+    /// </summary>
     public class UserConfiguration : IEntityTypeConfiguration<User>
     {
+        /// <summary>
+        /// Настраивает сущность User.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности User.</param>
         public void Configure(EntityTypeBuilder<User> builder)
         {
             builder.HasKey(u => u.Id);

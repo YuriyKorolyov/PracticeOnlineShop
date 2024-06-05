@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности Payment.
+    /// </summary>
     public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
     {
+        /// <summary>
+        /// Настраивает сущность Payment.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности Payment.</param>
         public void Configure(EntityTypeBuilder<Payment> builder)
         {
             builder.HasKey(p => p.Id);

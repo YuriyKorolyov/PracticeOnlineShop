@@ -6,8 +6,14 @@ using MyApp.Models;
 
 namespace MyApp.MappingProfiles
 {
+    /// <summary>
+    /// Профиль отображения для отзывов.
+    /// </summary>
     public class ReviewMappingProfile : Profile
     {
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="ReviewMappingProfile"/>.
+        /// </summary>
         public ReviewMappingProfile()
         {
             CreateMap<ReviewCreateDto, Review>()

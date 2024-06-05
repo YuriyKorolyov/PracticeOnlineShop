@@ -10,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Controllers
 {
+    /// <summary>
+    /// Контроллер для управления историей просмотров.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class ViewHistoriesController : ControllerBase
@@ -19,6 +22,13 @@ namespace MyApp.Controllers
         private readonly IProductRepository _productRepository;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="ViewHistoriesController"/>.
+        /// </summary>
+        /// <param name="viewHistoryRepository">Репозиторий для управления историей просмотров.</param>
+        /// <param name="productRepository">Репозиторий для управления продуктами.</param>
+        /// <param name="userRepository">Репозиторий для управления пользователями.</param>
+        /// <param name="mapper">Интерфейс для отображения объектов.</param>
         public ViewHistoriesController(IViewHistoryRepository viewHistoryRepository, IProductRepository productRepository, IUserRepository userRepository, IMapper mapper)
         {
             _viewHistoryRepository = viewHistoryRepository;
@@ -27,6 +37,12 @@ namespace MyApp.Controllers
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Получает историю просмотров по идентификатору пользователя.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>История просмотров пользователя.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ViewHistoryReadDto>>> GetViewHistoryByUser([FromQuery] int userId, CancellationToken cancellationToken)
         {
@@ -40,6 +56,12 @@ namespace MyApp.Controllers
             return Ok(viewHistory);
         }
 
+        /// <summary>
+        /// Получает историю просмотра по идентификатору.
+        /// </summary>
+        /// <param name="viewId">Идентификатор истории просмотра.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>История просмотра.</returns>
         [HttpGet("{viewId}")]
         public async Task<ActionResult<ViewHistoryReadDto>> GetViewHistory(int viewId, CancellationToken cancellationToken)
         {
@@ -56,6 +78,12 @@ namespace MyApp.Controllers
             return Ok(review);
         }
 
+        /// <summary>
+        /// Получает количество просмотров для определенного продукта.
+        /// </summary>
+        /// <param name="prodId">Идентификатор продукта.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Количество просмотров.</returns>
         [HttpGet("product/{prodId}")]
         public async Task<ActionResult<int>> GetCountVHForAProduct(int prodId, CancellationToken cancellationToken)
         {
@@ -67,6 +95,12 @@ namespace MyApp.Controllers
             return Ok(views);
         }
 
+        /// <summary>
+        /// Создает новую запись об истории просмотра.
+        /// </summary>
+        /// <param name="viewDto">Данные новой записи об истории просмотра.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Созданная запись об истории просмотра.</returns>
         [HttpPost]
         public async Task<ActionResult> CreateViewHistory([FromBody] ViewHistoryCreateDto viewDto, CancellationToken cancellationToken)
         {
@@ -91,6 +125,13 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetViewHistory), new { viewId = createdViewDto.Id }, createdViewDto);
         }
 
+        /// <summary>
+        /// Обновляет запись об истории просмотра.
+        /// </summary>
+        /// <param name="viewId">Идентификатор записи об истории просмотра.</param>
+        /// <param name="updatedView">Обновленные данные записи об истории просмотра.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Результат операции.</returns>
         [HttpPut("{viewId}")]
         public async Task<IActionResult> UpdateViewHistory(int viewId, [FromBody] ViewHistoryUpdateDto updatedView, CancellationToken cancellationToken)
         {
@@ -118,6 +159,12 @@ namespace MyApp.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Удаляет историю просмотров пользователя.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("/DeleteViewHistoryByUser/{userId}")]
         public async Task<IActionResult> DeleteViewHistoryByUser(int userId, CancellationToken cancellationToken)
         {

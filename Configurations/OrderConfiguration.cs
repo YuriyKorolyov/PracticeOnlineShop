@@ -4,8 +4,15 @@ using MyApp.Models;
 
 namespace MyApp.Configurations
 {
+    /// <summary>
+    /// Конфигурация для сущности Order.
+    /// </summary>
     public class OrderConfiguration : IEntityTypeConfiguration<Order>
     {
+        /// <summary>
+        /// Настраивает сущность Order.
+        /// </summary>
+        /// <param name="builder">Строитель для сущности Order.</param>
         public void Configure(EntityTypeBuilder<Order> builder)
         {
             builder.HasKey(o => o.Id);

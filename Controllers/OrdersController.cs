@@ -8,7 +8,9 @@ using MyApp.Models;
 
 namespace MyApp.Controllers
 {
-
+    /// <summary>
+    /// Контроллер для управления заказами.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class OrdersController : ControllerBase
@@ -19,6 +21,14 @@ namespace MyApp.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="OrdersController"/>.
+        /// </summary>
+        /// <param name="orderRepository">Репозиторий для работы с заказами.</param>
+        /// <param name="cartRepository">Репозиторий для работы с корзиной.</param>
+        /// <param name="productRepository">Репозиторий для работы с продуктами.</param>
+        /// <param name="userRepository">Репозиторий для работы с пользователями.</param>
+        /// <param name="mapper">Интерфейс для маппинга объектов.</param>
         public OrdersController(IOrderRepository orderRepository, ICartRepository cartRepository, IProductRepository productRepository, IUserRepository userRepository, IMapper mapper)
         {
             _orderRepository = orderRepository;
@@ -27,6 +37,12 @@ namespace MyApp.Controllers
             _userRepository = userRepository;
             _mapper = mapper;
         }
+
+        /// <summary>
+        /// Получает список всех заказов.
+        /// </summary>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Список заказов.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderReadDto>>> GetOrders(CancellationToken cancellationToken)
         {
@@ -43,6 +59,12 @@ namespace MyApp.Controllers
             return Ok(orders);
         }
 
+        /// <summary>
+        /// Получает заказ по его идентификатору.
+        /// </summary>
+        /// <param name="orderId">Идентификатор заказа.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Заказ.</returns>
         [HttpGet("{orderId}")]
         public async Task<ActionResult<OrderReadDto>> GetOrder(int orderId, CancellationToken cancellationToken)
         {
@@ -62,6 +84,12 @@ namespace MyApp.Controllers
             return Ok(order);
         }
 
+        /// <summary>
+        /// Создает новый заказ.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Созданный заказ.</returns>
         [HttpPost]
         public async Task<ActionResult<OrderReadDto>> PostOrder([FromQuery] int userId, CancellationToken cancellationToken)
         {
@@ -118,6 +146,12 @@ namespace MyApp.Controllers
             return CreatedAtAction(nameof(GetOrder), new { orderId = createdOrderDto.Id }, createdOrderDto);
         }
 
+        /// <summary>
+        /// Удаляет заказ по его идентификатору.
+        /// </summary>
+        /// <param name="orderId">Идентификатор заказа.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции.</returns>
         [HttpDelete("{orderId}")]
         public async Task<IActionResult> DeleteOrder(int orderId, CancellationToken cancellationToken)
         {

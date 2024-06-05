@@ -6,8 +6,14 @@ using MyApp.Models;
 
 namespace MyApp.MappingProfiles
 {
+    /// <summary>
+    /// Профиль отображения для сущности промокода.
+    /// </summary>
     public class PromoCodeMappingProfile : Profile
     {
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="PromoCodeMappingProfile"/>.
+        /// </summary>
         public PromoCodeMappingProfile()
         {
             CreateMap<PromoCodeCreateDto, PromoCode>();

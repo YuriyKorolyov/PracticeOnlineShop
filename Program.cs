@@ -1,10 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
 using MyApp.Interfaces;
-using MyApp.Interfaces.BASE;
 using MyApp.Middleware;
 using MyApp.Repository;
-using MyApp.Repository.BASE;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +24,10 @@ builder.Services.AddScoped<IViewHistoryRepository, ViewHistoryRepository>();
 builder.Services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "MyApp.xml"));
+});
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
