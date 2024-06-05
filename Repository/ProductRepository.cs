@@ -15,16 +15,20 @@ namespace MyApp.Repository
             _context = context;
         }
 
-        public async Task<Product> GetByName(string productName)
+        public async Task<Product> GetByName(string productName, CancellationToken cancellationToken = default)
         {
-            return await GetAll().Where(p => p.Name == productName).Include(p => p.ProductCategories).ThenInclude(pc => pc.Category).FirstOrDefaultAsync();
+            return await GetAll()
+                .Where(p => p.Name == productName)
+                .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<decimal> GetProductRating(int id)
+        public async Task<decimal> GetProductRating(int id, CancellationToken cancellationToken = default)
         {
             var reviews = await _context.Reviews
                                         .Where(p => p.Product.Id == id)
-                                        .ToListAsync();
+                                        .ToListAsync(cancellationToken);
 
             if (!reviews.Any()) 
                 return 0;
@@ -32,9 +36,11 @@ namespace MyApp.Repository
             return Math.Round((decimal)reviews.Sum(r => r.Rating) / reviews.Count(), 2);
         }
         
-        public async Task<Product> GetProductTrimToUpperAsync(ProductCreateDto productCreate)
+        public async Task<Product> GetProductTrimToUpperAsync(ProductCreateDto productCreate, CancellationToken cancellationToken = default)
         {
-            return await GetAll().Where(c => c.Name.Trim().ToUpper() == productCreate.Name.TrimEnd().ToUpper()).FirstOrDefaultAsync();
+            return await GetAll()
+                .Where(c => c.Name.Trim().ToUpper() == productCreate.Name.TrimEnd().ToUpper())
+                .FirstOrDefaultAsync(cancellationToken);
         }
     }
 }

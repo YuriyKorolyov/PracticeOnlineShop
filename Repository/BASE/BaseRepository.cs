@@ -16,7 +16,7 @@ namespace MyApp.Repository.BASE
             _dbSet = _context.Set<TEntity>();
         }
 
-        public async Task<bool> Exists(int id)
+        public async Task<bool> Exists(int id, CancellationToken cancellationToken = default)
         {
             return await _dbSet.AnyAsync(e => e.Id == id);
         }
@@ -29,13 +29,13 @@ namespace MyApp.Repository.BASE
         {
             return _dbSet.AsNoTracking();
         }
-        public async Task<TEntity> GetById(int id)
+        public async Task<TEntity> GetById(int id, CancellationToken cancellationToken = default)
         {
             return await _dbSet
                 .Where(e => e.Id == id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(cancellationToken);
         }
-        public async Task<TEntity> GetById(int id, params Expression<Func<TEntity, object>>[] includeProperties)
+        public async Task<TEntity> GetById(int id, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties)
         {
             var query = _dbSet.Where(e => e.Id == id);
 
@@ -44,70 +44,70 @@ namespace MyApp.Repository.BASE
                 query = query.Include(includeProperty);
             }
 
-            return await query.FirstOrDefaultAsync();
+            return await query.FirstOrDefaultAsync(cancellationToken);
         }
-        public async Task<TEntity> GetById(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> include = null)
+        public async Task<TEntity> GetById(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> include, CancellationToken cancellationToken)
         {
-            IQueryable<TEntity> query = _dbSet.Where(e => EF.Property<int>(e, "Id") == id);
+            IQueryable<TEntity> query = _dbSet.Where(e => e.Id == id);
 
             if (include != null)
             {
                 query = include(query);
             }
 
-            return await query.FirstOrDefaultAsync();
+            return await query.FirstOrDefaultAsync(cancellationToken);
         }
-        public async Task<bool> Add(TEntity entity)
+        public async Task<bool> Add(TEntity entity, CancellationToken cancellationToken = default)
         {
-            await _dbSet.AddAsync(entity);
+            await _dbSet.AddAsync(entity, cancellationToken);
 
-            return await SaveAsync();
+            return await SaveAsync(cancellationToken);
         }
 
-        public Task<bool> Update(TEntity entity)
+        public async Task<bool> Update(TEntity entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Attach(entity);
             _context.Entry(entity).State = EntityState.Modified;
 
-            return SaveAsync();
+            return await SaveAsync(cancellationToken);
         }
 
-        public async Task<bool> Delete(TEntity entity)
+        public async Task<bool> Delete(TEntity entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Remove(entity);
-            return await SaveAsync();
+            return await SaveAsync(cancellationToken);
         }
 
-        public async Task<bool> DeleteById(int id)
+        public async Task<bool> DeleteById(int id, CancellationToken cancellationToken = default)
         {
             //var entity = _dbSet.Attach((TEntity)Activator.CreateInstance(typeof(TEntity), id)).Entity;
             TEntity entity = new TEntity { Id = id };
             _dbSet.Attach(entity);
             _dbSet.Remove(entity);
             
-            return await SaveAsync();
+            return await SaveAsync(cancellationToken);
         }
 
-        public async Task<bool> DeleteByIds(IEnumerable<int> ids)
+        public async Task<bool> DeleteByIds(IEnumerable<int> ids, CancellationToken cancellationToken = default)
         {           
             //var entities = ids.Select(id => (TEntity)Activator.CreateInstance(typeof(TEntity), id)).ToList();
             var entities = ids.Select(id => new TEntity { Id = id }).ToList();
             _dbSet.AttachRange(entities);
             _dbSet.RemoveRange(entities);
 
-            return await SaveAsync();
+            return await SaveAsync(cancellationToken);
         }
 
-        public async Task<bool> SaveAsync()
+        public async Task<bool> SaveAsync(CancellationToken cancellationToken = default)
         {
-            return await _context.SaveChangesAsync() > 0;
+            return await _context.SaveChangesAsync(cancellationToken) > 0;
         }
 
-        public async Task<IEnumerable<TEntity>> GetByIds(IEnumerable<int> ids)
+        public async Task<IEnumerable<TEntity>> GetByIds(IEnumerable<int> ids, CancellationToken cancellationToken = default)
         {
             return await _dbSet
                 .Where(c => ids.Contains(c.Id))
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
     }
 }

@@ -12,9 +12,9 @@ namespace MyApp.Repository
         {
         }
 
-        public async Task<bool> DeleteByUserId(int userId)
+        public async Task<bool> DeleteByUserId(int userId, CancellationToken cancellationToken = default)
         {
-            var cartItems = await GetAll().Where(c => c.User.Id == userId).ToListAsync();
+            var cartItems = await GetAll().Where(c => c.User.Id == userId).ToListAsync(cancellationToken);
             _context.Carts.RemoveRange(cartItems);
 
             return await SaveAsync();

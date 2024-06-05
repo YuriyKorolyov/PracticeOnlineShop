@@ -6,6 +6,6 @@ namespace MyApp.Interfaces
     public interface IReviewRepository : IBaseRepository<Review>
     {
         IQueryable<Review> GetReviewsOfAProduct(int prodId);
-        Task<bool> DeleteByUserId(int userId);
+        Task<bool> DeleteByUserId(int userId, CancellationToken cancellationToken = default);
     }
 }

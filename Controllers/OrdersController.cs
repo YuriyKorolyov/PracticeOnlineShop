@@ -28,14 +28,14 @@ namespace MyApp.Controllers
             _mapper = mapper;
         }
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderReadDto>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderReadDto>>> GetOrders(CancellationToken cancellationToken)
         {
             var orders = await _orderRepository.GetAll()
                 .Include(o => o.Payment)
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Product)
                 .ProjectTo<OrderReadDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -44,7 +44,7 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{orderId}")]
-        public async Task<ActionResult<OrderReadDto>> GetOrder(int orderId)
+        public async Task<ActionResult<OrderReadDto>> GetOrder(int orderId, CancellationToken cancellationToken)
         {
             if (! await _orderRepository.Exists(orderId))
                 return NotFound();
@@ -53,7 +53,8 @@ namespace MyApp.Controllers
                  .Include(o => o.OrderDetails)
                  .ThenInclude(od => od.Product)
                  .ThenInclude(p => p.ProductCategories)
-                 .ThenInclude(pc => pc.Category)));
+                 .ThenInclude(pc => pc.Category),
+                 cancellationToken));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -62,7 +63,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<OrderReadDto>> PostOrder([FromQuery] int userId)
+        public async Task<ActionResult<OrderReadDto>> PostOrder([FromQuery] int userId, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -70,8 +71,8 @@ namespace MyApp.Controllers
             var order = new Order();
 
             order.OrderDate = DateTime.UtcNow;
-            order.User = await _userRepository.GetById(userId);
-            var cartItems = await _cartRepository.GetByUserId(userId).ToListAsync();//товары в заказ добавляются из корзины пользователя
+            order.User = await _userRepository.GetById(userId, cancellationToken);
+            var cartItems = await _cartRepository.GetByUserId(userId).ToListAsync(cancellationToken);//товары в заказ добавляются из корзины пользователя
 
             if (cartItems == null || !cartItems.Any())
             {
@@ -80,9 +81,9 @@ namespace MyApp.Controllers
 
             var orderDetails = cartItems.Select(ci => new OrderDetail
             {
-                Product = ci.Product,
                 Quantity = ci.Quantity,
-                UnitPrice = ci.Product.Price
+                UnitPrice = ci.Product.Price,
+                Product = ci.Product
             }).ToList();
 
             foreach (var orderDetail in orderDetails)//проверка товара на существование и наличие необходимого количества 
@@ -105,27 +106,28 @@ namespace MyApp.Controllers
             order.TotalAmount = orderDetails.Sum(od => od.Quantity * od.UnitPrice);//итоговая сумма заказа без учета промокода
             order.Status = OrderStatus.Processing;//статус заказа в обработке
 
-            if (! await _orderRepository.Add(order))
+            if (! await _orderRepository.Add(order, cancellationToken))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
             }
 
-            await _cartRepository.DeleteByUserId(order.User.Id);
+            await _cartRepository.DeleteByUserId(order.User.Id, cancellationToken);
 
             var createdOrderDto = _mapper.Map<OrderReadDto>(order);
             return CreatedAtAction(nameof(GetOrder), new { orderId = createdOrderDto.Id }, createdOrderDto);
         }
 
         [HttpDelete("{orderId}")]
-        public async Task<IActionResult> DeleteOrder(int orderId)
+        public async Task<IActionResult> DeleteOrder(int orderId, CancellationToken cancellationToken)
         {
-            if (! await _orderRepository.Exists(orderId))
+            if (! await _orderRepository.Exists(orderId, cancellationToken))
                 return NotFound();
 
             var orderToDelete = await _orderRepository.GetById(orderId, query =>
             query.Include(o => o.OrderDetails)
-                 .ThenInclude(od => od.Product));//получаем заказ с деталями заказа и товарами
+                 .ThenInclude(od => od.Product),
+                 cancellationToken);//получаем заказ с деталями заказа и товарами
 
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -139,7 +141,7 @@ namespace MyApp.Controllers
                 }
             }
 
-            if (!await _orderRepository.Delete(orderToDelete))
+            if (!await _orderRepository.Delete(orderToDelete, cancellationToken))
             {
                 ModelState.AddModelError("", "error deleting order");
                 return StatusCode(500, ModelState);

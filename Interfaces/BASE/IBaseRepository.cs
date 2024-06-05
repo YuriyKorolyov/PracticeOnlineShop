@@ -10,17 +10,17 @@ namespace MyApp.Interfaces.BASE
     public interface IBaseRepository<TEntity>
  where TEntity : class, IEntity
     {
-        Task<bool> Exists(int id);
+        Task<bool> Exists(int id, CancellationToken cancellationToken = default);
         IQueryable<TEntity> GetAll();
-        Task<TEntity> GetById(int id);
-        Task<TEntity> GetById(int id, params Expression<Func<TEntity, object>>[] includeProperties);
-        Task<TEntity> GetById(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> include = null);
-        Task<IEnumerable<TEntity>> GetByIds(IEnumerable<int> ids);
-        Task<bool> Add(TEntity entity);
-        Task<bool> Update(TEntity entity);
-        Task<bool> Delete(TEntity entity);
-        Task<bool> DeleteById(int id);
-        Task<bool> DeleteByIds(IEnumerable<int> ids);
-        Task<bool> SaveAsync();
+        Task<TEntity> GetById(int id, CancellationToken cancellationToken = default);
+        Task<TEntity> GetById(int id, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties);
+        Task<TEntity> GetById(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> include, CancellationToken cancellationToken = default);
+        Task<IEnumerable<TEntity>> GetByIds(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+        Task<bool> Add(TEntity entity, CancellationToken cancellationToken = default);
+        Task<bool> Update(TEntity entity, CancellationToken cancellationToken = default);
+        Task<bool> Delete(TEntity entity, CancellationToken cancellationToken = default);
+        Task<bool> DeleteById(int id, CancellationToken cancellationToken = default);
+        Task<bool> DeleteByIds(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+        Task<bool> SaveAsync(CancellationToken cancellationToken = default);
     }
 }

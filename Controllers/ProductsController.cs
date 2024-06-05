@@ -31,13 +31,13 @@ namespace MyApp.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductReadDto>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<ProductReadDto>>> GetProducts(CancellationToken cancellationToken)
         {
             var productDtos = await _productRepository.GetAll()
                 .Include(p => p.ProductCategories)
                 .ThenInclude(pc => pc.Category)
                 .ProjectTo<ProductReadDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -46,14 +46,15 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{prodId}")]
-        public async Task<ActionResult<ProductReadDto>> GetProduct(int prodId)
+        public async Task<ActionResult<ProductReadDto>> GetProduct(int prodId, CancellationToken cancellationToken)
         {
-            if (! await _productRepository.Exists(prodId))
+            if (! await _productRepository.Exists(prodId, cancellationToken))
                 return NotFound();
 
             var product = _mapper.Map<ProductReadDto>(await _productRepository.GetById(prodId, query=>
             query.Include(p=>p.ProductCategories)
-                 .ThenInclude(pc=>pc.Category)));
+                 .ThenInclude(pc=>pc.Category),
+                 cancellationToken));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -63,12 +64,12 @@ namespace MyApp.Controllers
 
 
         [HttpGet("{prodId}/rating")]
-        public async Task<ActionResult<decimal>> GetProductRating(int prodId)
+        public async Task<ActionResult<decimal>> GetProductRating(int prodId, CancellationToken cancellationToken)
         {
-            if (! await _productRepository.Exists(prodId))
+            if (! await _productRepository.Exists(prodId, cancellationToken))
                 return NotFound();
 
-            var rating = await _productRepository.GetProductRating(prodId);
+            var rating = await _productRepository.GetProductRating(prodId, cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -77,12 +78,12 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProductReadDto>> PostProduct([FromBody] ProductCreateDto productDto)
+        public async Task<ActionResult<ProductReadDto>> PostProduct([FromBody] ProductCreateDto productDto, CancellationToken cancellationToken)
         {
             if (productDto == null)
                 return BadRequest(ModelState);
 
-            var product = await _productRepository.GetProductTrimToUpperAsync(productDto);
+            var product = await _productRepository.GetProductTrimToUpperAsync(productDto, cancellationToken);
 
             if (product != null)
             {
@@ -95,15 +96,15 @@ namespace MyApp.Controllers
 
             var productMap = _mapper.Map<Product>(productDto);
 
-            var categories = await _categoryRepository.GetByIds(productDto.CategoryIds);
+            var categories = await _categoryRepository.GetByIds(productDto.CategoryIds, cancellationToken);
 
             productMap.ProductCategories = categories.Select(category => new ProductCategory
-            {
-                Product = productMap,
+            { 
+                Product = product, 
                 Category = category
             }).ToList();
 
-            if (!await _productRepository.Add(productMap))
+            if (!await _productRepository.Add(productMap, cancellationToken))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
@@ -114,7 +115,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPut("{prodId}")]
-        public async Task<IActionResult> PutProduct(int prodId, [FromBody] ProductUpdateDto productDto)
+        public async Task<IActionResult> PutProduct(int prodId, [FromBody] ProductUpdateDto productDto, CancellationToken cancellationToken)
         {
             if (productDto == null)
                 return BadRequest(ModelState);
@@ -124,16 +125,16 @@ namespace MyApp.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (! await _productRepository.Exists(prodId))
+            if (! await _productRepository.Exists(prodId, cancellationToken))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var product = await _productRepository.GetById(prodId);            
+            var product = await _productRepository.GetById(prodId, cancellationToken);            
             
 
-            if (! await _productRepository.Update(product))
+            if (! await _productRepository.Update(product, cancellationToken))
             {
                 ModelState.AddModelError("", "Something went wrong updating product");
                 return StatusCode(500, ModelState);
@@ -143,9 +144,9 @@ namespace MyApp.Controllers
         }
 
         [HttpDelete("{prodId}")]
-        public async Task<IActionResult> DeleteProduct(int prodId)
+        public async Task<IActionResult> DeleteProduct(int prodId, CancellationToken cancellationToken)
         {
-            if (! await _productRepository.Exists(prodId))
+            if (! await _productRepository.Exists(prodId, cancellationToken))
             {
                 return NotFound();
             }
@@ -153,7 +154,7 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (! await _productRepository.DeleteById(prodId))
+            if (! await _productRepository.DeleteById(prodId, cancellationToken))
             {
                 ModelState.AddModelError("", "Something went wrong deleting product");
             }

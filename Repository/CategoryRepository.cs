@@ -14,14 +14,17 @@ namespace MyApp.Repository
         {
             _context = context;
         }
-        public async Task<IEnumerable<Product>> GetProductsByCategoryAsync(int categoryId)
+        public IQueryable<Product> GetProductsByCategory(int categoryId)
         {
-            return await _context.ProductCategories.Where(e => e.CategoryId == categoryId).Select(c => c.Product).ToListAsync();
+            return _context.ProductCategories
+                .Where(e => e.CategoryId == categoryId)
+                .Select(c => c.Product)
+                .AsNoTracking();
         }
 
-        public async Task<Category> GetCategoryTrimToUpperAsync(CategoryCreateDto categoryCreate)
+        public async Task<Category> GetCategoryTrimToUpperAsync(CategoryCreateDto categoryCreate, CancellationToken cancellationToken = default)
         {
-            return await GetAll().Where(c => c.CategoryName.Trim().ToUpper() == categoryCreate.CategoryName.TrimEnd().ToUpper()).FirstOrDefaultAsync();
+            return await GetAll().Where(c => c.CategoryName.Trim().ToUpper() == categoryCreate.CategoryName.TrimEnd().ToUpper()).FirstOrDefaultAsync(cancellationToken);
         }
     }
 }

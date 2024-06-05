@@ -24,11 +24,11 @@ namespace MyApp.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CategoryReadDto>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryReadDto>>> GetCategories(CancellationToken cancellationToken)
         {
             var categories = await _categoryRepository.GetAll()
                 .ProjectTo<CategoryReadDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -37,12 +37,12 @@ namespace MyApp.Controllers
         }
             
         [HttpGet("{categoryId}")]
-        public async Task<ActionResult<CategoryReadDto>> GetCategory(int categoryId)
+        public async Task<ActionResult<CategoryReadDto>> GetCategory(int categoryId, CancellationToken cancellationToken)
         {
-            if (! await _categoryRepository.Exists(categoryId))
+            if (! await _categoryRepository.Exists(categoryId, cancellationToken))
                 return NotFound();
 
-            var category = _mapper.Map<CategoryReadDto>(await _categoryRepository.GetById(categoryId));
+            var category = _mapper.Map<CategoryReadDto>(await _categoryRepository.GetById(categoryId, cancellationToken));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -51,9 +51,11 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("product/{categoryId}")]
-        public async Task<ActionResult<int>> GetProductByCategoryId(int categoryId)
+        public async Task<ActionResult<int>> GetProductByCategoryId(int categoryId, CancellationToken cancellationToken)
         {
-            var products = _mapper.Map<List<ProductReadDto>>(await _categoryRepository.GetProductsByCategoryAsync(categoryId));
+            var products = await _categoryRepository.GetProductsByCategory(categoryId)
+                .ProjectTo<ProductReadDto>(_mapper.ConfigurationProvider)
+                .ToListAsync(cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -62,12 +64,12 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<CategoryReadDto>> CreateCategory([FromBody] CategoryCreateDto categoryCreate)
+        public async Task<ActionResult<CategoryReadDto>> CreateCategory([FromBody] CategoryCreateDto categoryCreate, CancellationToken cancellationToken)
         {
             if (categoryCreate == null)
                 return BadRequest(ModelState);
 
-            var category = await _categoryRepository.GetCategoryTrimToUpperAsync(categoryCreate);
+            var category = await _categoryRepository.GetCategoryTrimToUpperAsync(categoryCreate, cancellationToken);
 
             if (category != null)
             {
@@ -80,7 +82,7 @@ namespace MyApp.Controllers
 
             var categoryMap = _mapper.Map<Category>(categoryCreate);
 
-            if (! await _categoryRepository.Add(categoryMap))
+            if (! await _categoryRepository.Add(categoryMap, cancellationToken))
             {
                 ModelState.AddModelError("", "Something went wrong while saving");
                 return StatusCode(500, ModelState);
@@ -91,7 +93,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPut("{categoryId}")]
-        public async Task<IActionResult> UpdateCategory(int categoryId, [FromBody] CategoryUpdateDto updatedCategory)
+        public async Task<IActionResult> UpdateCategory(int categoryId, [FromBody] CategoryUpdateDto updatedCategory, CancellationToken cancellationToken)
         {
             if (updatedCategory == null)
                 return BadRequest(ModelState);
@@ -99,16 +101,16 @@ namespace MyApp.Controllers
             if (categoryId != updatedCategory.Id)
                 return BadRequest(ModelState);
 
-            if (! await _categoryRepository.Exists(categoryId))
+            if (! await _categoryRepository.Exists(categoryId, cancellationToken))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var categoryMap = await _categoryRepository.GetById(categoryId);
+            var categoryMap = await _categoryRepository.GetById(categoryId, cancellationToken);
             categoryMap.CategoryName = updatedCategory.CategoryName;
 
-            if (! await _categoryRepository.Update(categoryMap))
+            if (! await _categoryRepository.Update(categoryMap, cancellationToken))
             {
                 ModelState.AddModelError("", "Something went wrong updating category");
                 return StatusCode(500, ModelState);
@@ -118,9 +120,9 @@ namespace MyApp.Controllers
         }
 
         [HttpDelete("{categoryId}")]
-        public async Task<IActionResult> DeleteCategory(int categoryId)
+        public async Task<IActionResult> DeleteCategory(int categoryId, CancellationToken cancellationToken)
         {
-            if (! await _categoryRepository.Exists(categoryId))
+            if (! await _categoryRepository.Exists(categoryId, cancellationToken))
             {
                 return NotFound();
             }
@@ -128,7 +130,7 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (! await _categoryRepository.DeleteById(categoryId))
+            if (! await _categoryRepository.DeleteById(categoryId, cancellationToken))
             {
                 ModelState.AddModelError("", "Something went wrong deleting category");
             }

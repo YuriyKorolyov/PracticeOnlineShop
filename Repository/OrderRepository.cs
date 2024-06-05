@@ -11,9 +11,12 @@ namespace MyApp.Repository
         public OrderRepository(ApplicationDbContext context) : base(context) 
         {
         }
-        public async Task<IEnumerable<OrderDetail>> GetOrderDetailsByUserId(int userId)
+        public IQueryable<OrderDetail> GetOrderDetailsByUserId(int userId)
         {
-            return (IEnumerable<OrderDetail>)await GetAll().Where(e => e.User.Id == userId).Select(c => c.OrderDetails).ToListAsync();
+            return GetAll()
+                .Where(e => e.User.Id == userId)
+                .SelectMany(c => c.OrderDetails)
+                .AsNoTracking();
         }
     }
 }

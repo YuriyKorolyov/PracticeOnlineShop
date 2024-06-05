@@ -6,7 +6,7 @@ namespace MyApp.Interfaces
 {
     public interface ICategoryRepository : IBaseRepository<Category>
     {
-        Task<IEnumerable<Product>> GetProductsByCategoryAsync(int categoryId);
-        Task<Category> GetCategoryTrimToUpperAsync(CategoryCreateDto categoryCreate);
+        IQueryable<Product> GetProductsByCategory(int categoryId);
+        Task<Category> GetCategoryTrimToUpperAsync(CategoryCreateDto categoryCreate, CancellationToken cancellationToken = default);
     }
 }

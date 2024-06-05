@@ -11,12 +11,12 @@ namespace MyApp.Repository
         public ReviewRepository(ApplicationDbContext context) : base(context)
         {
         }
-        public async Task<bool> DeleteByUserId(int userId)
+        public async Task<bool> DeleteByUserId(int userId, CancellationToken cancellationToken = default)
         {
             var reviews = await GetAll().Where(c => c.User.Id == userId).ToListAsync();
             _context.Reviews.RemoveRange(reviews);
 
-            return await SaveAsync();
+            return await SaveAsync(cancellationToken);
         }
 
         public IQueryable<Review> GetReviewsOfAProduct(int prodId)

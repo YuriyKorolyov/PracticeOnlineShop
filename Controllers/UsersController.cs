@@ -24,12 +24,12 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
+    public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers(CancellationToken cancellationToken)
     {
         var userDtos = await _userRepository.GetAll()
             .Include(u => u.Role)
             .ProjectTo<UserReadDto>(_mapper.ConfigurationProvider)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -38,13 +38,14 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{userId}")]
-    public async Task<ActionResult<UserReadDto>> GetUser(int userId)
+    public async Task<ActionResult<UserReadDto>> GetUser(int userId, CancellationToken cancellationToken)
     {
-        if (! await _userRepository.Exists(userId))
+        if (! await _userRepository.Exists(userId, cancellationToken))
             return NotFound();
 
         var userDto = _mapper.Map<UserReadDto>(await _userRepository.GetById(userId, query =>
-        query.Include(u => u.Role)));
+        query.Include(u => u.Role),
+        cancellationToken));
 
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -53,7 +54,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<UserReadDto>> PostUser([FromBody] UserCreateDto userDto)
+    public async Task<ActionResult<UserReadDto>> PostUser([FromBody] UserCreateDto userDto, CancellationToken cancellationToken)
     {
         if (userDto == null)
             return BadRequest(ModelState);
@@ -62,9 +63,9 @@ public class UsersController : ControllerBase
             return BadRequest(ModelState);
         
         var user = _mapper.Map<User>(userDto);
-        user.Role = await _roleRepository.GetById(userDto.RoleId);
+        user.Role = await _roleRepository.GetById(userDto.RoleId, cancellationToken);
 
-        if (! await _userRepository.Add(user))
+        if (! await _userRepository.Add(user, cancellationToken))
         {
             ModelState.AddModelError("", "Something went wrong while saving");
             return StatusCode(500, ModelState);
@@ -75,7 +76,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{userId}")]
-    public async Task<IActionResult> PutUser(int userId, [FromBody] UserUpdateDto userDto)
+    public async Task<IActionResult> PutUser(int userId, [FromBody] UserUpdateDto userDto, CancellationToken cancellationToken)
     {
         if (userDto == null)
             return BadRequest(ModelState);
@@ -83,21 +84,21 @@ public class UsersController : ControllerBase
         if (userId != userDto.Id)
             return BadRequest(ModelState);
 
-        if (! await _userRepository.Exists(userId))
+        if (! await _userRepository.Exists(userId, cancellationToken))
             return NotFound();
 
         if (!ModelState.IsValid)
             return BadRequest();
         
-        var user = await _userRepository.GetById(userId);
-        user.Role = await _roleRepository.GetById(userDto.RoleId);
+        var user = await _userRepository.GetById(userId, cancellationToken);
+        user.Role = await _roleRepository.GetById(userDto.RoleId, cancellationToken);
         user.FirstName = userDto.FirstName;
         user.LastName = userDto.LastName;
         user.Email = userDto.Email;
         user.PhoneNumber = userDto.PhoneNumber;
         user.ShippingAddress = userDto.ShippingAddress;
 
-        if (! await _userRepository.Update(user))
+        if (! await _userRepository.Update(user, cancellationToken))
         {
             ModelState.AddModelError("", "Something went wrong updating user");
             return StatusCode(500, ModelState);
@@ -107,9 +108,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{userId}")]
-    public async Task<IActionResult> DeleteUser(int userId)
+    public async Task<IActionResult> DeleteUser(int userId, CancellationToken cancellationToken)
     {
-        if (! await _userRepository.Exists(userId))
+        if (! await _userRepository.Exists(userId, cancellationToken))
         {
             return NotFound();
         }
@@ -117,7 +118,7 @@ public class UsersController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        if (! await _userRepository.DeleteById(userId))
+        if (! await _userRepository.DeleteById(userId, cancellationToken))
         {
             ModelState.AddModelError("", "Something went wrong deleting user");
         }

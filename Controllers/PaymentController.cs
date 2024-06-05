@@ -28,12 +28,12 @@ namespace MyApp.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PaymentReadDto>>> GetPayments()
+        public async Task<ActionResult<IEnumerable<PaymentReadDto>>> GetPayments(CancellationToken cancellationToken)
         {
             var payments = await _paymentRepository.GetAll()
                 .Include(p => p.PromoCode)
                 .ProjectTo<PaymentReadDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -42,10 +42,11 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{payId}")]
-        public async Task<ActionResult<PaymentReadDto>> GetPayment(int payId)
+        public async Task<ActionResult<PaymentReadDto>> GetPayment(int payId, CancellationToken cancellationToken)
         {
             var payment = await _paymentRepository.GetById(payId, query =>
-            query.Include(p => p.PromoCode));
+            query.Include(p => p.PromoCode),
+            cancellationToken);
 
             if (payment == null)
             {
@@ -57,7 +58,7 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<PaymentReadDto>> AddPayment(PaymentCreateDto paymentDto)
+        public async Task<ActionResult<PaymentReadDto>> AddPayment(PaymentCreateDto paymentDto, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -65,11 +66,11 @@ namespace MyApp.Controllers
             }
 
             var payment = _mapper.Map<Payment>(paymentDto);
-            payment.Order = await _orderRepository.GetById(paymentDto.OrderId);
+            payment.Order = await _orderRepository.GetById(paymentDto.OrderId, cancellationToken);
 
             if (!string.IsNullOrEmpty(paymentDto.PromoName))
             {
-                var promoCode = await _promoCodeRepository.GetByName(paymentDto.PromoName);
+                var promoCode = await _promoCodeRepository.GetByName(paymentDto.PromoName, cancellationToken);
                 if (promoCode != null && promoCode.EndDate > DateTime.UtcNow)
                 {
                     payment.PromoCode = promoCode;
@@ -80,23 +81,23 @@ namespace MyApp.Controllers
             payment.PaymentDate = DateTime.UtcNow;
             payment.Status = (PaymentStatus)new Random().Next(0, 3);
 
-            await _paymentRepository.Add(payment);
+            await _paymentRepository.Add(payment, cancellationToken);
 
             var createdPaymentDto = _mapper.Map<PaymentReadDto>(payment);
-            return CreatedAtAction(nameof(GetPayment), new { id = createdPaymentDto.Id }, createdPaymentDto);
+            return CreatedAtAction(nameof(GetPayment), new { payId = createdPaymentDto.Id }, createdPaymentDto);
         }
 
         [HttpPut("{payId}")]
-        public async Task<IActionResult> UpdatePayment(int payId, PaymentUpdateDto paymentDto)
+        public async Task<IActionResult> UpdatePayment(int payId, PaymentUpdateDto paymentDto, CancellationToken cancellationToken)
         {
             if (payId != paymentDto.Id || !ModelState.IsValid)
             {
                 return BadRequest();
             }
 
-            var payment = await _paymentRepository.GetById(payId);
+            var payment = await _paymentRepository.GetById(payId, cancellationToken);
 
-            var order = await _orderRepository.GetById(paymentDto.OrderId);
+            var order = await _orderRepository.GetById(paymentDto.OrderId, cancellationToken);
             if (order == null)
             {
                 return NotFound("Order not found");
@@ -107,7 +108,7 @@ namespace MyApp.Controllers
 
             if (!string.IsNullOrEmpty(paymentDto.PromoName))
             {
-                var promoCode = await _promoCodeRepository.GetByName(paymentDto.PromoName);
+                var promoCode = await _promoCodeRepository.GetByName(paymentDto.PromoName, cancellationToken);
                 if (promoCode != null && promoCode.EndDate > DateTime.UtcNow)
                 {
                     payment.PromoCode = promoCode;
@@ -117,7 +118,7 @@ namespace MyApp.Controllers
 
             payment.Status = paymentDto.Status;
 
-            await _paymentRepository.Update(payment);
+            await _paymentRepository.Update(payment, cancellationToken);
             return NoContent();
         }
     }

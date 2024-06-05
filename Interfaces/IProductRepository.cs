@@ -6,8 +6,8 @@ namespace MyApp.Interfaces
 {
     public interface IProductRepository : IBaseRepository<Product>
     {
-        Task<Product> GetByName(string productName);
-        Task<decimal> GetProductRating(int id);
-        Task<Product> GetProductTrimToUpperAsync(ProductCreateDto productCreate);
+        Task<Product> GetByName(string productName, CancellationToken cancellationToken = default);
+        Task<decimal> GetProductRating(int id, CancellationToken cancellationToken = default);
+        Task<Product> GetProductTrimToUpperAsync(ProductCreateDto productCreate, CancellationToken cancellationToken = default);
     }
 }

@@ -5,6 +5,6 @@ namespace MyApp.Interfaces
 {
     public interface IPromoCodeRepository : IBaseRepository<PromoCode>
     {
-        Task<PromoCode> GetByName(string promoName);
+        Task<PromoCode> GetByName(string promoName, CancellationToken cancellationToken = default);
     }
 }

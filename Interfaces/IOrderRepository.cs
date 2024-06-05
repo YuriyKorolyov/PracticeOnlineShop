@@ -6,6 +6,6 @@ namespace MyApp.Interfaces
 {
     public interface IOrderRepository : IBaseRepository<Order>  
     {
-        Task<IEnumerable<OrderDetail>> GetOrderDetailsByUserId(int userId);
+        IQueryable<OrderDetail> GetOrderDetailsByUserId(int userId);
     }
 }

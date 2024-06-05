@@ -12,9 +12,11 @@ namespace MyApp.Repository
         {
         }
 
-        public async Task<PromoCode> GetByName(string promoName)
+        public async Task<PromoCode> GetByName(string promoName, CancellationToken cancellationToken = default)
         {
-            return await GetAll().Where(r => r.PromoName == promoName).FirstOrDefaultAsync();
+            return await GetAll()
+                .Where(r => r.PromoName == promoName)
+                .FirstOrDefaultAsync(cancellationToken);
         }
     }
 }

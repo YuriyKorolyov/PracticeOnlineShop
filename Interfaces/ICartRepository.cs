@@ -6,6 +6,6 @@ namespace MyApp.Interfaces
     public interface ICartRepository : IBaseRepository<Cart>
     {
         IQueryable<Cart> GetByUserId(int userId);
-        Task<bool> DeleteByUserId(int userId);
+        Task<bool> DeleteByUserId(int userId, CancellationToken cancellationToken = default);
     }
 }

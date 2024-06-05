@@ -28,18 +28,18 @@ namespace MyApp.Controllers
         }
 
         [HttpGet("{userId}")]
-        public async Task<ActionResult<IEnumerable<CartReadDto>>> GetCartsByUserId(int userId)
+        public async Task<ActionResult<IEnumerable<CartReadDto>>> GetCartsByUserId(int userId, CancellationToken cancellationToken)
         {
             var carts = await _cartRepository.GetByUserId(userId)
-                .ProjectTo<CartReadDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-            return Ok(carts);
+            .ProjectTo<CartReadDto>(_mapper.ConfigurationProvider)
+            .ToListAsync(cancellationToken);
+            return Ok(carts);            
         }
 
         [HttpPost]
-        public async Task<ActionResult<CartReadDto>> AddToCart([FromBody] CartCreateDto cartDto)
+        public async Task<ActionResult<CartReadDto>> AddToCart([FromBody] CartCreateDto cartDto, CancellationToken cancellationToken)
         {
-            var product = await _productRepository.GetById(cartDto.ProductId);
+            var product = await _productRepository.GetById(cartDto.ProductId, cancellationToken);
             if (product == null)
             {
                 return NotFound(); 
@@ -52,37 +52,37 @@ namespace MyApp.Controllers
             var cart = _mapper.Map<Cart>(cartDto);
 
             cart.Product = product;
-            cart.User = await _userRepository.GetById(cartDto.UserId);
+            cart.User = await _userRepository.GetById(cartDto.UserId, cancellationToken);
 
-            await _cartRepository.Add(cart);
+            await _cartRepository.Add(cart, cancellationToken);
 
             var createdCartDto = _mapper.Map<CartReadDto>(cart);
             return CreatedAtAction(nameof(GetCartsByUserId), new { userId = cartDto.UserId }, createdCartDto);
         }
 
         [HttpDelete("{cartId}")]
-        public async Task<IActionResult> RemoveFromCart(int cartId)
+        public async Task<IActionResult> RemoveFromCart(int cartId, CancellationToken cancellationToken)
         {
-            await _cartRepository.DeleteById(cartId);
+            await _cartRepository.DeleteById(cartId, cancellationToken);
             return NoContent();
         }
 
         [HttpDelete("{userId}/clear")]
-        public async Task<IActionResult> ClearCart(int userId)
+        public async Task<IActionResult> ClearCart(int userId, CancellationToken cancellationToken)
         {
-            await _cartRepository.DeleteByUserId(userId);
+            await _cartRepository.DeleteByUserId(userId, cancellationToken);
             return NoContent();
         }
 
         [HttpPut("{cartId}")]
-        public async Task<IActionResult> UpdateCart(int cartId, [FromBody] CartUpdateDto cartDto)
+        public async Task<IActionResult> UpdateCart(int cartId, [FromBody] CartUpdateDto cartDto, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var product = await _productRepository.GetById(cartDto.ProductId);
+            var product = await _productRepository.GetById(cartDto.ProductId, cancellationToken);
             if (product == null)
             {
                 return NotFound("Product not found.");
@@ -93,14 +93,14 @@ namespace MyApp.Controllers
                 return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {cartDto.Quantity}");
             }
 
-            var cart = await _cartRepository.GetById(cartId);
+            var cart = await _cartRepository.GetById(cartId, cancellationToken);
 
             if (cart == null)
             {
                 return NotFound("Cart not found.");
             }
 
-            var user = await _userRepository.GetById(cartDto.UserId);
+            var user = await _userRepository.GetById(cartDto.UserId, cancellationToken);
             if (user == null)
             {
                 return NotFound("User not found.");
@@ -113,7 +113,7 @@ namespace MyApp.Controllers
 
             cart.Quantity = cartDto.Quantity;
 
-            await _cartRepository.Update(cart);
+            await _cartRepository.Update(cart, cancellationToken);
 
             return NoContent();
         }

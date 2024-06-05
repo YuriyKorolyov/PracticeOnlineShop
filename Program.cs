@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
 using MyApp.Interfaces;
 using MyApp.Interfaces.BASE;
+using MyApp.Middleware;
 using MyApp.Repository;
 using MyApp.Repository.BASE;
 
@@ -30,6 +31,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
+
+app.UseMiddleware<TaskCancellationHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
