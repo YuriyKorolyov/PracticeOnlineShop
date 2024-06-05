@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyApp.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MyApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240605104953_UpdDB10_AddEntityConfiguration")]
+    partial class UpdDB10_AddEntityConfiguration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -107,6 +110,9 @@ namespace MyApp.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ProductId1")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
@@ -118,6 +124,8 @@ namespace MyApp.Migrations
                     b.HasIndex("OrderId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId1");
 
                     b.ToTable("OrderDetails");
                 });
@@ -407,10 +415,14 @@ namespace MyApp.Migrations
                         .IsRequired();
 
                     b.HasOne("MyApp.Models.Product", "Product")
-                        .WithMany("OrderDetails")
+                        .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("MyApp.Models.Product", null)
+                        .WithMany("OrderDetails")
+                        .HasForeignKey("ProductId1");
 
                     b.Navigation("Order");
 
