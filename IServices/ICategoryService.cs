@@ -1,13 +1,12 @@
-﻿using MyApp.Dto.Create;
-using MyApp.Interfaces.BASE;
+﻿using MyApp.IServices.BASE;
 using MyApp.Models;
 
-namespace MyApp.Interfaces
+namespace MyApp.IServices
 {
     /// <summary>
     /// Предоставляет методы для работы с хранилищем категорий.
     /// </summary>
-    public interface ICategoryRepository : IBaseRepository<Category>
+    public interface ICategoryService : IBaseService<Category>
     {
         /// <summary>
         /// Получает продукты по идентификатору категории.
@@ -19,9 +18,9 @@ namespace MyApp.Interfaces
         /// <summary>
         /// Получает категорию по данным из объекта создания категории.
         /// </summary>
-        /// <param name="categoryCreate">Данные для создания категории.</param>
+        /// <param name="categoryName">Название категории.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
-        /// <returns>Объект категории, полученный из данных создания категории.</returns>
-        Task<Category> GetCategoryTrimToUpperAsync(CategoryCreateDto categoryCreate, CancellationToken cancellationToken = default);
+        /// <returns>Задача, представляющая асинхронную операцию. Результат задачи содержит значение true, если категория существует, иначе false.</returns>
+        Task<bool> ExistsByNameAsync(string categoryName, CancellationToken cancellationToken = default);
     }
 }

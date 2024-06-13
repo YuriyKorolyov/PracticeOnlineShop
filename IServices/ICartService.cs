@@ -1,12 +1,12 @@
-﻿using MyApp.Interfaces.BASE;
+﻿using MyApp.IServices.BASE;
 using MyApp.Models;
 
-namespace MyApp.Interfaces
+namespace MyApp.IServices
 {
     /// <summary>
     /// Предоставляет методы для работы с хранилищем корзин.
     /// </summary>
-    public interface ICartRepository : IBaseRepository<Cart>
+    public interface ICartService : IBaseService<Cart>
     {
         /// <summary>
         /// Получает корзины по идентификатору пользователя.
@@ -21,6 +21,6 @@ namespace MyApp.Interfaces
         /// <param name="userId">Идентификатор пользователя.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>True, если корзины были успешно удалены; в противном случае — false.</returns>
-        Task<bool> DeleteByUserId(int userId, CancellationToken cancellationToken = default);
+        Task DeleteByUserIdAsync(int userId, CancellationToken cancellationToken = default);
     }
 }

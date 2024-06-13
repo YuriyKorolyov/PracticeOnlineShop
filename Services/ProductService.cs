@@ -1,27 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Dto.Create;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
 using MyApp.Repository.BASE;
+using MyApp.Services.BASE;
 
-namespace MyApp.Repository
+namespace MyApp.Services
 {
     /// <summary>
     /// Репозиторий для управления операциями, связанными с продуктами.
     /// </summary>
     /// <typeparam name="Product">Тип сущности продукта.</typeparam>
-    public class ProductRepository : BaseRepository<Product>, IProductRepository
+    public class ProductService : BaseService<Product>, IProductService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IBaseRepository<Review> _reviewRepository;
 
-        /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="ProductRepository"/>.
-        /// </summary>
-        /// <param name="context">Контекст базы данных приложения.</param>
-        public ProductRepository(ApplicationDbContext context) : base(context)
+        public ProductService(IBaseRepository<Review> reviewRepository, IBaseRepository<Product> repository) : base(repository)
         {
-            _context = context;
+            _reviewRepository = reviewRepository;
         }
 
         /// <summary>
@@ -30,7 +25,7 @@ namespace MyApp.Repository
         /// <param name="productName">Имя продукта.</param>
         /// <param name="cancellationToken">Токен отмены для асинхронной операции.</param>
         /// <returns>Продукт, соответствующий указанному имени.</returns>
-        public async Task<Product> GetByName(string productName, CancellationToken cancellationToken = default)
+        public async Task<Product> GetByNameAsync(string productName, CancellationToken cancellationToken = default)
         {
             return await GetAll()
                 .Where(p => p.Name == productName)
@@ -45,29 +40,29 @@ namespace MyApp.Repository
         /// <param name="id">Идентификатор продукта.</param>
         /// <param name="cancellationToken">Токен отмены для асинхронной операции.</param>
         /// <returns>Рейтинг продукта.</returns>
-        public async Task<decimal> GetProductRating(int id, CancellationToken cancellationToken = default)
+        public async Task<decimal> GetProductRatingAsync(int id, CancellationToken cancellationToken = default)
         {
-            var reviews = await _context.Reviews
-                                        .Where(p => p.Product.Id == id)
+            var ratingData = await _reviewRepository.GetAll()
+                                        .Where(r => r.Product.Id == id)
+                                        .Select(r => r.Rating)
                                         .ToListAsync(cancellationToken);
 
-            if (!reviews.Any()) 
+            if (ratingData.Count == 0)
                 return 0;
 
-            return Math.Round((decimal)reviews.Sum(r => r.Rating) / reviews.Count(), 2);
+            return (decimal)Math.Round(ratingData.Average(), 2);
         }
 
         /// <summary>
         /// Получает продукт по его имени в верхнем регистре без учета окончания строки.
         /// </summary>
-        /// <param name="productCreate">Сведения о создаваемом продукте.</param>
+        /// <param name="productName">Сведения о создаваемом продукте.</param>
         /// <param name="cancellationToken">Токен отмены для асинхронной операции.</param>
-        /// <returns>Продукт, соответствующий указанным данным о продукте.</returns>
-        public async Task<Product> GetProductTrimToUpperAsync(ProductCreateDto productCreate, CancellationToken cancellationToken = default)
+        /// <returns>Задача, представляющая асинхронную операцию. Результат задачи содержит значение true, если продукт существует, иначе false.</returns>
+        public async Task<bool> ExistsByNameAsync(string productName, CancellationToken cancellationToken = default)
         {
             return await GetAll()
-                .Where(c => c.Name.Trim().ToUpper() == productCreate.Name.TrimEnd().ToUpper())
-                .FirstOrDefaultAsync(cancellationToken);
+                .AnyAsync(c => c.Name.Trim().ToUpper() == productName.TrimEnd().ToUpper(), cancellationToken);
         }
     }
 }

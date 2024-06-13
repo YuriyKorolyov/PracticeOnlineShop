@@ -1,12 +1,12 @@
-﻿using MyApp.Interfaces.BASE;
-using MyApp.Models;
+﻿using MyApp.Models;
+using MyApp.IServices.BASE;
 
-namespace MyApp.Interfaces
+namespace MyApp.IServices
 {
     /// <summary>
     /// Предоставляет методы для работы с хранилищем отзывов.
     /// </summary>
-    public interface IReviewRepository : IBaseRepository<Review>
+    public interface IReviewService : IBaseService<Review>
     {
         /// <summary>
         /// Получает отзывы о продукте по его идентификатору.
@@ -21,6 +21,6 @@ namespace MyApp.Interfaces
         /// <param name="userId">Идентификатор пользователя.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns><c>true</c>, если отзывы пользователя удалены успешно, иначе <c>false</c>.</returns>
-        Task<bool> DeleteByUserId(int userId, CancellationToken cancellationToken = default);
+        Task DeleteByUserIdAsync(int userId, CancellationToken cancellationToken = default);
     }
 }

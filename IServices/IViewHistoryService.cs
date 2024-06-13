@@ -1,12 +1,12 @@
-﻿using MyApp.Interfaces.BASE;
-using MyApp.Models;
+﻿using MyApp.Models;
+using MyApp.IServices.BASE;
 
-namespace MyApp.Interfaces
+namespace MyApp.IServices
 {
     /// <summary>
     /// Предоставляет методы для работы с хранилищем истории просмотров.
     /// </summary>
-    public interface IViewHistoryRepository : IBaseRepository<ViewHistory>
+    public interface IViewHistoryService : IBaseService<ViewHistory>
     {
         /// <summary>
         /// Получает историю просмотров для указанного пользователя.
@@ -21,6 +21,6 @@ namespace MyApp.Interfaces
         /// <param name="prodId">Идентификатор продукта.</param>
         /// <param name="cancellationToken">Токен отмены задачи.</param>
         /// <returns>Количество просмотров продукта.</returns>
-        Task<int> GetCountViewHistoryOfAProduct(int prodId, CancellationToken cancellationToken = default);
+        Task<int> GetCountViewHistoryOfAProductAsync(int prodId, CancellationToken cancellationToken = default);
     }
 }

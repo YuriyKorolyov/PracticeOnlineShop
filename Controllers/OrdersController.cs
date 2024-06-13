@@ -3,8 +3,9 @@ using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Read;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
+using MyApp.Repository.UnitOfWorks;
 
 namespace MyApp.Controllers
 {
@@ -15,26 +16,34 @@ namespace MyApp.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
-        private readonly IOrderRepository _orderRepository;
-        private readonly ICartRepository _cartRepository;
-        private readonly IProductRepository _productRepository;
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IOrderService _orderService;
+        private readonly ICartService _cartService;
+        private readonly IProductService _productService;
+        private readonly IUserService _userService;
         private readonly IMapper _mapper;
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="OrdersController"/>.
         /// </summary>
-        /// <param name="orderRepository">Репозиторий для работы с заказами.</param>
-        /// <param name="cartRepository">Репозиторий для работы с корзиной.</param>
-        /// <param name="productRepository">Репозиторий для работы с продуктами.</param>
-        /// <param name="userRepository">Репозиторий для работы с пользователями.</param>
+        /// <param name="orderService">Репозиторий для работы с заказами.</param>
+        /// <param name="cartService">Репозиторий для работы с корзиной.</param>
+        /// <param name="productService">Репозиторий для работы с продуктами.</param>
+        /// <param name="userService">Репозиторий для работы с пользователями.</param>
         /// <param name="mapper">Интерфейс для маппинга объектов.</param>
-        public OrdersController(IOrderRepository orderRepository, ICartRepository cartRepository, IProductRepository productRepository, IUserRepository userRepository, IMapper mapper)
+        public OrdersController(
+            IUnitOfWork unitOfWork, 
+            IOrderService orderService, 
+            ICartService cartService, 
+            IProductService productService, 
+            IUserService userService, 
+            IMapper mapper)
         {
-            _orderRepository = orderRepository;
-            _cartRepository = cartRepository;
-            _productRepository = productRepository;
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
+            _orderService = orderService;
+            _cartService = cartService;
+            _productService = productService;
+            _userService = userService;
             _mapper = mapper;
         }
 
@@ -44,9 +53,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Список заказов.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderReadDto>>> GetOrders(CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<OrderReadDto>>> GetOrdersAsync(CancellationToken cancellationToken)
         {
-            var orders = await _orderRepository.GetAll()
+            var orders = await _orderService.GetAll()
                 .Include(o => o.Payment)
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Product)
@@ -66,11 +75,12 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Заказ.</returns>
         [HttpGet("{orderId}")]
-        public async Task<ActionResult<OrderReadDto>> GetOrder(int orderId, CancellationToken cancellationToken)
+        public async Task<ActionResult<OrderReadDto>> GetOrderByIdAsync(int orderId, CancellationToken cancellationToken)
         {
-            if (! await _orderRepository.Exists(orderId))
+            if (! await _orderService.ExistsAsync(orderId, cancellationToken))
                 return NotFound();
-            var order = _mapper.Map<OrderReadDto>(await _orderRepository.GetById(orderId, query =>
+
+            var order = _mapper.Map<OrderReadDto>(await _orderService.GetByIdAsync(orderId, query =>
             query.Include(o => o.Payment)
                  .Include(o => o.OrderDetails)
                  .ThenInclude(od => od.Product)
@@ -84,66 +94,69 @@ namespace MyApp.Controllers
             return Ok(order);
         }
 
-        /// <summary>
-        /// Создает новый заказ.
-        /// </summary>
-        /// <param name="userId">Идентификатор пользователя.</param>
-        /// <param name="cancellationToken">Токен отмены операции.</param>
-        /// <returns>Созданный заказ.</returns>
         [HttpPost]
-        public async Task<ActionResult<OrderReadDto>> PostOrder([FromQuery] int userId, CancellationToken cancellationToken)
+        public async Task<ActionResult<OrderReadDto>> CreateOrderAsync([FromQuery] int userId, CancellationToken cancellationToken)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-            var order = new Order();
-
-            order.OrderDate = DateTime.UtcNow;
-            order.User = await _userRepository.GetById(userId, cancellationToken);
-            var cartItems = await _cartRepository.GetByUserId(userId).ToListAsync(cancellationToken);//товары в заказ добавляются из корзины пользователя
-
-            if (cartItems == null || !cartItems.Any())
+            try
             {
-                return BadRequest("Cart is empty.");
-            }
+                var user = await _userService.GetByIdAsync(userId, cancellationToken);
 
-            var orderDetails = cartItems.Select(ci => new OrderDetail
-            {
-                Quantity = ci.Quantity,
-                UnitPrice = ci.Product.Price,
-                Product = ci.Product
-            }).ToList();
-
-            foreach (var orderDetail in orderDetails)//проверка товара на существование и наличие необходимого количества 
-            {
-                var product = await _productRepository.GetById(orderDetail.Product.Id);
-                if (product == null)
+                if (user == null)
                 {
-                    return BadRequest($"Product with ID {orderDetail.Product.Id} not found.");
+                    return BadRequest("User not found.");
                 }
 
-                if (product.StockQuantity < orderDetail.Quantity)
+                var cartItems = await _cartService.GetByUserId(userId).ToListAsync(cancellationToken);//товары в заказ добавляются из корзины пользователя
+
+                if (cartItems == null || cartItems.Count == 0)
                 {
-                    return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {orderDetail.Quantity}");
+                    return BadRequest("Cart is empty.");
+                }
+               
+                var orderDetails = new List<OrderDetail>();
+                foreach (var cartItem in cartItems)
+                {
+                    var product = cartItem.Product;
+                    if (product == null || product.StockQuantity < cartItem.Quantity)
+                    {
+                        return BadRequest($"Product {product?.Name ?? cartItem.Product.Id.ToString()} is not available.");
+                    }
+
+                    product.StockQuantity -= cartItem.Quantity;
+
+                    var orderDetail = new OrderDetail(
+                        cartItem.Quantity,
+                        product.Price,
+                        product);
+
+                    orderDetails.Add(orderDetail);
                 }
 
-                product.StockQuantity -= orderDetail.Quantity;//количество товара в наличии уменьшается на число товара, которое заказали
+                decimal TotalAmount = orderDetails.Sum(od => od.Quantity * od.UnitPrice);
+
+                var order = new Order
+                (
+                    TotalAmount,
+                    OrderStatus.Processing,
+                    user,
+                    orderDetails
+                );
+                
+                await _orderService.AddAsync(order, cancellationToken);
+                await _cartService.DeleteByUserIdAsync(userId, cancellationToken);
+
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                var createdOrderDto = _mapper.Map<OrderReadDto>(order);
+                return CreatedAtAction(nameof(GetOrderByIdAsync), new { orderId = createdOrderDto.Id }, createdOrderDto);
             }
-
-            order.OrderDetails = orderDetails;
-            order.TotalAmount = orderDetails.Sum(od => od.Quantity * od.UnitPrice);//итоговая сумма заказа без учета промокода
-            order.Status = OrderStatus.Processing;//статус заказа в обработке
-
-            if (! await _orderRepository.Add(order, cancellationToken))
+            catch (Exception ex)
             {
-                ModelState.AddModelError("", "Something went wrong while saving");
-                return StatusCode(500, ModelState);
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                throw;
             }
-
-            await _cartRepository.DeleteByUserId(order.User.Id, cancellationToken);
-
-            var createdOrderDto = _mapper.Map<OrderReadDto>(order);
-            return CreatedAtAction(nameof(GetOrder), new { orderId = createdOrderDto.Id }, createdOrderDto);
         }
 
         /// <summary>
@@ -153,34 +166,40 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{orderId}")]
-        public async Task<IActionResult> DeleteOrder(int orderId, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteOrderAsync(int orderId, CancellationToken cancellationToken)
         {
-            if (! await _orderRepository.Exists(orderId, cancellationToken))
-                return NotFound();
-
-            var orderToDelete = await _orderRepository.GetById(orderId, query =>
-            query.Include(o => o.OrderDetails)
-                 .ThenInclude(od => od.Product),
-                 cancellationToken);//получаем заказ с деталями заказа и товарами
-
-            if (!ModelState.IsValid)
-                return BadRequest();
-
-            foreach (var orderDetail in orderToDelete.OrderDetails)
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
             {
-                var product = orderDetail.Product;
-                if (product != null)
+                if (! await _orderService.ExistsAsync(orderId, cancellationToken))
+                    return NotFound();
+
+                var orderToDelete = await _orderService.GetByIdAsync(orderId, query =>
+                query.Include(o => o.OrderDetails)
+                     .ThenInclude(od => od.Product),
+                     cancellationToken);//получаем заказ с деталями заказа и товарами
+
+                if (!ModelState.IsValid)
+                    return BadRequest();
+
+                foreach (var orderDetail in orderToDelete.OrderDetails)
                 {
-                    product.StockQuantity += orderDetail.Quantity;//возвращаем товар в продажу
+                    var product = orderDetail.Product;
+                    if (product != null)
+                    {
+                        product.StockQuantity += orderDetail.Quantity;//возвращаем товар в продажу
+                    }
                 }
-            }
 
-            if (!await _orderRepository.Delete(orderToDelete, cancellationToken))
-            {
-                ModelState.AddModelError("", "error deleting order");
-                return StatusCode(500, ModelState);
+                await _orderService.DeleteByIdAsync(orderId, cancellationToken);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                return NoContent();
             }
-            return NoContent();
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return StatusCode(500, "An error occurred while deleting the order.");
+            }         
         }
     }
 

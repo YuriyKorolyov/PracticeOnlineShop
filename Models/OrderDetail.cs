@@ -1,4 +1,4 @@
-﻿using MyApp.Interfaces.BASE;
+﻿using MyApp.Repository.BASE;
 
 namespace MyApp.Models
 {
@@ -31,5 +31,14 @@ namespace MyApp.Models
         /// Получает или задает товар, связанный с данной деталью заказа.
         /// </summary>
         public Product Product { get; set; }
+
+        public OrderDetail() { }
+
+        public OrderDetail(int quantity, decimal unitPrice, Product product)
+        {
+            Quantity = quantity;
+            UnitPrice = unitPrice;
+            Product = product;
+        }
     }
 }

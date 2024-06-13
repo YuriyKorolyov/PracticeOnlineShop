@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
+using MyApp.Repository.UnitOfWorks;
 
 namespace MyApp.Controllers
 {
@@ -17,17 +18,22 @@ namespace MyApp.Controllers
     [ApiController]
     public class CategoriesController : ControllerBase
     {
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICategoryService _categoryService;
         private readonly IMapper _mapper;
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="CategoriesController"/>.
         /// </summary>
-        /// <param name="categoryRepository">Репозиторий для работы с категориями.</param>
+        /// <param name="categoryService">Репозиторий для работы с категориями.</param>
         /// <param name="mapper">Интерфейс для маппинга объектов.</param>
-        public CategoriesController(ICategoryRepository categoryRepository, IMapper mapper)
+        public CategoriesController(
+            IUnitOfWork unitOfWork,
+            ICategoryService categoryService, 
+            IMapper mapper)
         {
-            _categoryRepository = categoryRepository;
+            _unitOfWork = unitOfWork;
+            _categoryService = categoryService;
             _mapper = mapper;
         }
 
@@ -37,9 +43,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Список категорий.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CategoryReadDto>>> GetCategories(CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<CategoryReadDto>>> GetCategoriesAsync(CancellationToken cancellationToken)
         {
-            var categories = await _categoryRepository.GetAll()
+            var categories = await _categoryService.GetAll()
                 .ProjectTo<CategoryReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
 
@@ -54,14 +60,14 @@ namespace MyApp.Controllers
         /// </summary>
         /// <param name="categoryId">Идентификатор категории.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
-        /// <returns>Категория.</returns
+        /// <returns>Категория.</returns>
         [HttpGet("{categoryId}")]
-        public async Task<ActionResult<CategoryReadDto>> GetCategory(int categoryId, CancellationToken cancellationToken)
+        public async Task<ActionResult<CategoryReadDto>> GetCategoryByIdAsync(int categoryId, CancellationToken cancellationToken)
         {
-            if (! await _categoryRepository.Exists(categoryId, cancellationToken))
+            if (! await _categoryService.ExistsAsync(categoryId, cancellationToken))
                 return NotFound();
 
-            var category = _mapper.Map<CategoryReadDto>(await _categoryRepository.GetById(categoryId, cancellationToken));
+            var category = _mapper.Map<CategoryReadDto>(await _categoryService.GetByIdAsync(categoryId, cancellationToken));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -76,9 +82,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Список продуктов.</returns>
         [HttpGet("product/{categoryId}")]
-        public async Task<ActionResult<int>> GetProductByCategoryId(int categoryId, CancellationToken cancellationToken)
+        public async Task<ActionResult<int>> GetProductByCategoryIdAsync(int categoryId, CancellationToken cancellationToken)
         {
-            var products = await _categoryRepository.GetProductsByCategory(categoryId)
+            var products = await _categoryService.GetProductsByCategory(categoryId)
                 .ProjectTo<ProductReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
 
@@ -95,14 +101,12 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Созданная категория.</returns>
         [HttpPost]
-        public async Task<ActionResult<CategoryReadDto>> CreateCategory([FromBody] CategoryCreateDto categoryCreate, CancellationToken cancellationToken)
+        public async Task<ActionResult<CategoryReadDto>> AddCategoryAsync([FromBody] CategoryCreateDto categoryCreate, CancellationToken cancellationToken)
         {
             if (categoryCreate == null)
                 return BadRequest(ModelState);
 
-            var category = await _categoryRepository.GetCategoryTrimToUpperAsync(categoryCreate, cancellationToken);
-
-            if (category != null)
+            if (await _categoryService.ExistsByNameAsync(categoryCreate.CategoryName, cancellationToken))
             {
                 ModelState.AddModelError("", "Category already exists");
                 return StatusCode(422, ModelState);
@@ -113,14 +117,11 @@ namespace MyApp.Controllers
 
             var categoryMap = _mapper.Map<Category>(categoryCreate);
 
-            if (! await _categoryRepository.Add(categoryMap, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong while saving");
-                return StatusCode(500, ModelState);
-            }
+            await _categoryService.AddAsync(categoryMap, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             var createdCategoryDto = _mapper.Map<CategoryReadDto>(categoryMap);
-            return CreatedAtAction(nameof(GetCategory), new { categoryId = createdCategoryDto.Id }, createdCategoryDto);
+            return CreatedAtAction(nameof(GetCategoryByIdAsync), new { categoryId = createdCategoryDto.Id }, createdCategoryDto);
         }
 
         /// <summary>
@@ -131,7 +132,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{categoryId}")]
-        public async Task<IActionResult> UpdateCategory(int categoryId, [FromBody] CategoryUpdateDto updatedCategory, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateCategoryAsync(int categoryId, [FromBody] CategoryUpdateDto updatedCategory, CancellationToken cancellationToken)
         {
             if (updatedCategory == null)
                 return BadRequest(ModelState);
@@ -139,20 +140,17 @@ namespace MyApp.Controllers
             if (categoryId != updatedCategory.Id)
                 return BadRequest(ModelState);
 
-            if (! await _categoryRepository.Exists(categoryId, cancellationToken))
+            if (! await _categoryService.ExistsAsync(categoryId, cancellationToken))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var categoryMap = await _categoryRepository.GetById(categoryId, cancellationToken);
+            var categoryMap = await _categoryService.GetByIdAsync(categoryId, cancellationToken);
             categoryMap.CategoryName = updatedCategory.CategoryName;
 
-            if (! await _categoryRepository.Update(categoryMap, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong updating category");
-                return StatusCode(500, ModelState);
-            }
+            await _categoryService.UpdateAsync(categoryMap, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             return NoContent();
         }
@@ -164,9 +162,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{categoryId}")]
-        public async Task<IActionResult> DeleteCategory(int categoryId, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteCategoryAsync(int categoryId, CancellationToken cancellationToken)
         {
-            if (! await _categoryRepository.Exists(categoryId, cancellationToken))
+            if (! await _categoryService.ExistsAsync(categoryId, cancellationToken))
             {
                 return NotFound();
             }
@@ -174,10 +172,7 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (! await _categoryRepository.DeleteById(categoryId, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong deleting category");
-            }
+            await _categoryService.DeleteByIdAsync(categoryId, cancellationToken);
 
             return NoContent();
         }

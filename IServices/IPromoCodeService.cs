@@ -1,12 +1,12 @@
-﻿using MyApp.Interfaces.BASE;
+﻿using MyApp.IServices.BASE;
 using MyApp.Models;
 
-namespace MyApp.Interfaces
+namespace MyApp.IServices
 {
     /// <summary>
     /// Предоставляет методы для работы с хранилищем промокодов.
     /// </summary>
-    public interface IPromoCodeRepository : IBaseRepository<PromoCode>
+    public interface IPromoCodeService : IBaseService<PromoCode>
     {
         /// <summary>
         /// Получает промокод по его имени.
@@ -14,6 +14,6 @@ namespace MyApp.Interfaces
         /// <param name="promoName">Имя промокода.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Промокод.</returns>
-        Task<PromoCode> GetByName(string promoName, CancellationToken cancellationToken = default);
+        Task<PromoCode> GetByNameAsync(string promoName, CancellationToken cancellationToken = default);
     }
 }

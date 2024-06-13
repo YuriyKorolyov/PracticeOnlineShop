@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
+using MyApp.Repository.UnitOfWorks;
 
 namespace MyApp.Controllers
 {
@@ -17,17 +18,22 @@ namespace MyApp.Controllers
     [ApiController]
     public class PromoCodesController : ControllerBase
     {
-        private readonly IPromoCodeRepository _promoCodeRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IPromoCodeService _promoCodeService;
         private readonly IMapper _mapper;
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="PromoCodesController"/>.
         /// </summary>
-        /// <param name="promoCodeRepository">Репозиторий для работы с промокодами.</param>
+        /// <param name="promoCodeService">Репозиторий для работы с промокодами.</param>
         /// <param name="mapper">Интерфейс для маппинга объектов.</param>
-        public PromoCodesController(IPromoCodeRepository promoCodeRepository, IMapper mapper)
+        public PromoCodesController(
+            IUnitOfWork unitOfWork,
+            IPromoCodeService promoCodeService, 
+            IMapper mapper)
         {
-            _promoCodeRepository = promoCodeRepository;
+            _unitOfWork = unitOfWork;
+            _promoCodeService = promoCodeService;
             _mapper = mapper;
         }
 
@@ -37,9 +43,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Список промокодов.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PromoCodeReadDto>>> GetPromos(CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<PromoCodeReadDto>>> GetPromosAsync(CancellationToken cancellationToken)
         {
-            var promos = await _promoCodeRepository.GetAll()
+            var promos = await _promoCodeService.GetAll()
                 .ProjectTo<PromoCodeReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
 
@@ -56,12 +62,12 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Информация о промокоде.</returns>
         [HttpGet("{promoId}")]
-        public async Task<ActionResult<PromoCodeReadDto>> GetPromo(int promoId, CancellationToken cancellationToken)
+        public async Task<ActionResult<PromoCodeReadDto>> GetPromoByIdAsync(int promoId, CancellationToken cancellationToken)
         {
-            if (!await _promoCodeRepository.Exists(promoId, cancellationToken))
+            if (!await _promoCodeService.ExistsAsync(promoId, cancellationToken))
                 return NotFound();
 
-            var promo = _mapper.Map<PromoCodeReadDto>(await _promoCodeRepository.GetById(promoId, cancellationToken));
+            var promo = _mapper.Map<PromoCodeReadDto>(await _promoCodeService.GetByIdAsync(promoId, cancellationToken));
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -76,7 +82,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpPost]
-        public async Task<ActionResult> CreatePromo([FromBody] PromoCodeCreateDto promoDto, CancellationToken cancellationToken)
+        public async Task<ActionResult> AddPromoAsync([FromBody] PromoCodeCreateDto promoDto, CancellationToken cancellationToken)
         {
             if (promoDto == null)
                 return BadRequest(ModelState);
@@ -86,14 +92,11 @@ namespace MyApp.Controllers
 
             var promo = _mapper.Map<PromoCode>(promoDto);
 
-            if (!await _promoCodeRepository.Add(promo, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong while saving");
-                return StatusCode(500, ModelState);
-            }
+            await _promoCodeService.AddAsync(promo, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             var createdPromoDto = _mapper.Map<PromoCodeReadDto>(promo);
-            return CreatedAtAction(nameof(GetPromo), new { promoId = createdPromoDto.Id }, createdPromoDto);
+            return CreatedAtAction(nameof(GetPromoByIdAsync), new { promoId = createdPromoDto.Id }, createdPromoDto);
         }
 
         /// <summary>
@@ -104,7 +107,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{promoId}")]
-        public async Task<IActionResult> UpdatePromo(int promoId, [FromBody] PromoCodeUpdateDto updatedPromo, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdatePromoAsync(int promoId, [FromBody] PromoCodeUpdateDto updatedPromo, CancellationToken cancellationToken)
         {
             if (updatedPromo == null)
                 return BadRequest(ModelState);
@@ -112,22 +115,19 @@ namespace MyApp.Controllers
             if (promoId != updatedPromo.Id)
                 return BadRequest(ModelState);
 
-            if (!await _promoCodeRepository.Exists(promoId, cancellationToken))
+            if (!await _promoCodeService.ExistsAsync(promoId, cancellationToken))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var promo = await _promoCodeRepository.GetById(promoId, cancellationToken);
+            var promo = await _promoCodeService.GetByIdAsync(promoId, cancellationToken);
             promo.StartDate = updatedPromo.StartDate;
             promo.EndDate = updatedPromo.EndDate;
             promo.PromoName = updatedPromo.PromoName;
 
-            if (!await _promoCodeRepository.Update(promo, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong updating review");
-                return StatusCode(500, ModelState);
-            }
+            await _promoCodeService.UpdateAsync(promo, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             return NoContent();
         }
@@ -139,9 +139,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{promoId}")]
-        public async Task<IActionResult> DeletePromo(int promoId, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeletePromoAsync(int promoId, CancellationToken cancellationToken)
         {
-            if (!await _promoCodeRepository.Exists(promoId, cancellationToken))
+            if (!await _promoCodeService.ExistsAsync(promoId, cancellationToken))
             {
                 return NotFound();
             }
@@ -149,10 +149,7 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (!await _promoCodeRepository.DeleteById(promoId, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong deleting review");
-            }
+            await _promoCodeService.DeleteByIdAsync(promoId, cancellationToken);
 
             return NoContent();
         }

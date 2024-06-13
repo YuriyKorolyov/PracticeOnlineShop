@@ -1,22 +1,18 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
 using MyApp.Repository.BASE;
+using MyApp.Services.BASE;
 
-namespace MyApp.Repository
+namespace MyApp.Services
 {
     /// <summary>
     /// Репозиторий для управления операциями, связанными с отзывами.
     /// </summary>
     /// <typeparam name="Review">Тип сущности отзыва.</typeparam>
-    public class ReviewRepository : BaseRepository<Review>, IReviewRepository
+    public class ReviewService : BaseService<Review>, IReviewService
     {
-        /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="ReviewRepository"/>.
-        /// </summary>
-        /// <param name="context">Контекст базы данных приложения.</param>
-        public ReviewRepository(ApplicationDbContext context) : base(context)
+        public ReviewService(IBaseRepository<Review> repository) : base(repository)
         {
         }
 
@@ -26,12 +22,14 @@ namespace MyApp.Repository
         /// <param name="userId">Идентификатор пользователя.</param>
         /// <param name="cancellationToken">Токен отмены для асинхронной операции.</param>
         /// <returns><see langword="true"/>, если удаление успешно; в противном случае — <see langword="false"/>.</returns>
-        public async Task<bool> DeleteByUserId(int userId, CancellationToken cancellationToken = default)
+        public async Task DeleteByUserIdAsync(int userId, CancellationToken cancellationToken = default)
         {
-            var reviews = await GetAll().Where(c => c.User.Id == userId).ToListAsync();
-            _context.Reviews.RemoveRange(reviews);
+            var reviews = await GetAll()
+                .Where(r => r.User.Id == userId)
+                .Select(r => r.Id)
+                .ToListAsync(cancellationToken);
 
-            return await SaveAsync(cancellationToken);
+            await DeleteByIdsAsync(reviews);
         }
 
         /// <summary>

@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using MyApp.Dto.Read;
 using MyApp.Dto.Create;
 using MyApp.Dto.Update;
-using MyApp.Interfaces;
 using MyApp.Models;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using MyApp.IServices;
+using MyApp.Repository.UnitOfWorks;
 
 namespace MyApp.Controllers
 {
@@ -17,23 +18,30 @@ namespace MyApp.Controllers
     [ApiController]
     public class ViewHistoriesController : ControllerBase
     {
-        private readonly IViewHistoryRepository _viewHistoryRepository;
-        private readonly IUserRepository _userRepository;
-        private readonly IProductRepository _productRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IViewHistoryService _viewHistoryService;
+        private readonly IUserService _userService;
+        private readonly IProductService _productService;
         private readonly IMapper _mapper;
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="ViewHistoriesController"/>.
         /// </summary>
-        /// <param name="viewHistoryRepository">Репозиторий для управления историей просмотров.</param>
-        /// <param name="productRepository">Репозиторий для управления продуктами.</param>
-        /// <param name="userRepository">Репозиторий для управления пользователями.</param>
+        /// <param name="viewHistoryService">Репозиторий для управления историей просмотров.</param>
+        /// <param name="productService">Репозиторий для управления продуктами.</param>
+        /// <param name="userService">Репозиторий для управления пользователями.</param>
         /// <param name="mapper">Интерфейс для отображения объектов.</param>
-        public ViewHistoriesController(IViewHistoryRepository viewHistoryRepository, IProductRepository productRepository, IUserRepository userRepository, IMapper mapper)
+        public ViewHistoriesController(
+            IUnitOfWork unitOfWork,
+            IViewHistoryService viewHistoryService, 
+            IProductService productService, 
+            IUserService userService, 
+            IMapper mapper)
         {
-            _viewHistoryRepository = viewHistoryRepository;
-            _userRepository = userRepository;
-            _productRepository = productRepository;
+            _unitOfWork = unitOfWork;
+            _viewHistoryService = viewHistoryService;
+            _userService = userService;
+            _productService = productService;
             _mapper = mapper;
         }
 
@@ -44,9 +52,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>История просмотров пользователя.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ViewHistoryReadDto>>> GetViewHistoryByUser([FromQuery] int userId, CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<ViewHistoryReadDto>>> GetViewHistoryByUserAsync([FromQuery] int userId, CancellationToken cancellationToken)
         {
-            var viewHistory = await _viewHistoryRepository.GetByUserId(userId)
+            var viewHistory = await _viewHistoryService.GetByUserId(userId)
                 .ProjectTo<ViewHistoryReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
 
@@ -63,12 +71,12 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>История просмотра.</returns>
         [HttpGet("{viewId}")]
-        public async Task<ActionResult<ViewHistoryReadDto>> GetViewHistory(int viewId, CancellationToken cancellationToken)
+        public async Task<ActionResult<ViewHistoryReadDto>> GetViewHistoryByIdAsync(int viewId, CancellationToken cancellationToken)
         {
-            if (!await _viewHistoryRepository.Exists(viewId, cancellationToken))
+            if (!await _viewHistoryService.ExistsAsync(viewId, cancellationToken))
                 return NotFound();
 
-            var review = _mapper.Map<ViewHistoryReadDto>(await _viewHistoryRepository.GetById(viewId, query =>
+            var review = _mapper.Map<ViewHistoryReadDto>(await _viewHistoryService.GetByIdAsync(viewId, query =>
             query.Include(vh => vh.Product),
             cancellationToken));
 
@@ -85,9 +93,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Количество просмотров.</returns>
         [HttpGet("product/{prodId}")]
-        public async Task<ActionResult<int>> GetCountVHForAProduct(int prodId, CancellationToken cancellationToken)
+        public async Task<ActionResult<int>> GetCountVHForAProductAsync(int prodId, CancellationToken cancellationToken)
         {
-            var views = await _viewHistoryRepository.GetCountViewHistoryOfAProduct(prodId, cancellationToken);
+            var views = await _viewHistoryService.GetCountViewHistoryOfAProductAsync(prodId, cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -102,7 +110,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Созданная запись об истории просмотра.</returns>
         [HttpPost]
-        public async Task<ActionResult> CreateViewHistory([FromBody] ViewHistoryCreateDto viewDto, CancellationToken cancellationToken)
+        public async Task<ActionResult> AddViewHistoryAsync([FromBody] ViewHistoryCreateDto viewDto, CancellationToken cancellationToken)
         {
             if (viewDto == null)
                 return BadRequest(ModelState);
@@ -112,17 +120,14 @@ namespace MyApp.Controllers
 
             var view = _mapper.Map<ViewHistory>(viewDto);
 
-            view.Product = await _productRepository.GetById(viewDto.ProductId, cancellationToken);
-            view.User = await _userRepository.GetById(viewDto.UserId, cancellationToken);
+            view.Product = await _productService.GetByIdAsync(viewDto.ProductId, cancellationToken);
+            view.User = await _userService.GetByIdAsync(viewDto.UserId, cancellationToken);
 
-            if (!await _viewHistoryRepository.Add(view, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong while saving");
-                return StatusCode(500, ModelState);
-            }
+            await _viewHistoryService.AddAsync(view, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             var createdViewDto = _mapper.Map<ViewHistoryReadDto>(view);
-            return CreatedAtAction(nameof(GetViewHistory), new { viewId = createdViewDto.Id }, createdViewDto);
+            return CreatedAtAction(nameof(GetViewHistoryByIdAsync), new { viewId = createdViewDto.Id }, createdViewDto);
         }
 
         /// <summary>
@@ -133,7 +138,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{viewId}")]
-        public async Task<IActionResult> UpdateViewHistory(int viewId, [FromBody] ViewHistoryUpdateDto updatedView, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateViewHistoryAsync(int viewId, [FromBody] ViewHistoryUpdateDto updatedView, CancellationToken cancellationToken)
         {
             if (updatedView == null)
                 return BadRequest(ModelState);
@@ -141,20 +146,17 @@ namespace MyApp.Controllers
             if (viewId != updatedView.Id)
                 return BadRequest(ModelState);
 
-            if (!await _viewHistoryRepository.Exists(viewId, cancellationToken))
+            if (!await _viewHistoryService.ExistsAsync(viewId, cancellationToken))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var view = await _viewHistoryRepository.GetById(viewId, cancellationToken);
-            view.ViewDate = updatedView.ViewDate;            
+            var view = await _viewHistoryService.GetByIdAsync(viewId, cancellationToken);
+            view.ViewDate = updatedView.ViewDate;
 
-            if (!await _viewHistoryRepository.Update(view, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong updating viewhistory");
-                return StatusCode(500, ModelState);
-            }
+            await _viewHistoryService.UpdateAsync(view, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             return NoContent();
         }
@@ -166,23 +168,20 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("/DeleteViewHistoryByUser/{userId}")]
-        public async Task<IActionResult> DeleteViewHistoryByUser(int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteViewHistoryByUserAsync(int userId, CancellationToken cancellationToken)
         {
-            if (!await _userRepository.Exists(userId, cancellationToken))
+            if (!await _userService.ExistsAsync(userId, cancellationToken))
                 return NotFound();
 
-            var viewsToDelete = await _viewHistoryRepository.GetByUserId(userId)
+            var viewsToDelete = await _viewHistoryService.GetByUserId(userId)
                 .Select(vh => vh.Id)
                 .ToListAsync(cancellationToken);
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            if (!await _viewHistoryRepository.DeleteByIds(viewsToDelete, cancellationToken))
-            {
-                ModelState.AddModelError("", "error deleting reviews");
-                return StatusCode(500, ModelState);
-            }
+            await _viewHistoryService.DeleteByIdsAsync(viewsToDelete, cancellationToken);
+
             return NoContent();
         }
     }

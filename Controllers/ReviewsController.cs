@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
+using MyApp.Repository.UnitOfWorks;
 
 namespace MyApp.Controllers
 {
@@ -17,23 +18,30 @@ namespace MyApp.Controllers
     [ApiController]
     public class ReviewsController : ControllerBase
     {
-        private readonly IReviewRepository _reviewRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IReviewService _reviewService;
         private readonly IMapper _mapper;
-        private readonly IUserRepository _userRepository;
-        private readonly IProductRepository _productRepository;
+        private readonly IUserService _userService;
+        private readonly IProductService _productService;
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="ReviewsController"/>.
         /// </summary>
-        /// <param name="reviewRepository">Репозиторий для управления отзывами.</param>
+        /// <param name="reviewService">Репозиторий для управления отзывами.</param>
         /// <param name="mapper">Интерфейс для отображения объектов.</param>
-        /// <param name="productRepository">Репозиторий для управления продуктами.</param>
-        /// <param name="userRepository">Репозиторий для управления пользователями.</param>
-        public ReviewsController(IReviewRepository reviewRepository, IMapper mapper, IProductRepository productRepository, IUserRepository userRepository)
+        /// <param name="productService">Репозиторий для управления продуктами.</param>
+        /// <param name="userService">Репозиторий для управления пользователями.</param>
+        public ReviewsController(
+            IUnitOfWork unitOfWork,
+            IReviewService reviewService, 
+            IMapper mapper, 
+            IProductService productService, 
+            IUserService userService)
         {
-            _reviewRepository = reviewRepository;
-            _userRepository = userRepository;
-            _productRepository = productRepository;
+            _unitOfWork = unitOfWork;
+            _reviewService = reviewService;
+            _userService = userService;
+            _productService = productService;
             _mapper = mapper;            
         }
 
@@ -43,9 +51,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Список отзывов.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviews(CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviewsAsync(CancellationToken cancellationToken)
         {
-            var reviews = await _reviewRepository.GetAll()
+            var reviews = await _reviewService.GetAll()
                 .Include(r => r.User)
                 .ProjectTo<ReviewReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
@@ -63,12 +71,12 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Отзыв.</returns>
         [HttpGet("{reviewId}")]
-        public async Task<ActionResult<ReviewReadDto>> GetReview(int reviewId, CancellationToken cancellationToken)
+        public async Task<ActionResult<ReviewReadDto>> GetReviewByIdAsync(int reviewId, CancellationToken cancellationToken)
         {
-            if (! await _reviewRepository.Exists(reviewId, cancellationToken))
+            if (! await _reviewService.ExistsAsync(reviewId, cancellationToken))
                 return NotFound();
 
-            var review = _mapper.Map<ReviewReadDto>(await _reviewRepository.GetById(reviewId, query =>
+            var review = _mapper.Map<ReviewReadDto>(await _reviewService.GetByIdAsync(reviewId, query =>
             query.Include(r => r.User),
             cancellationToken));
 
@@ -85,9 +93,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Отзывы для продукта.</returns>
         [HttpGet("product/{prodId}")]
-        public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviewsForAProduct(int prodId, CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviewsForAProductAsync(int prodId, CancellationToken cancellationToken)
         {
-            var reviews = await _reviewRepository.GetReviewsOfAProduct(prodId)
+            var reviews = await _reviewService.GetReviewsOfAProduct(prodId)
                 .ProjectTo<ReviewReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
 
@@ -104,7 +112,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Созданный отзыв.</returns>
         [HttpPost]
-        public async Task<ActionResult> CreateReview([FromBody] ReviewCreateDto reviewDto, CancellationToken cancellationToken)
+        public async Task<ActionResult> AddReviewAsync([FromBody] ReviewCreateDto reviewDto, CancellationToken cancellationToken)
         {
             if (reviewDto == null)
                 return BadRequest(ModelState);
@@ -114,17 +122,14 @@ namespace MyApp.Controllers
 
             var review = _mapper.Map<Review>(reviewDto);
 
-            review.Product = await _productRepository.GetById(reviewDto.ProductId, cancellationToken);
-            review.User = await _userRepository.GetById(reviewDto.UserId, cancellationToken);
+            review.Product = await _productService.GetByIdAsync(reviewDto.ProductId, cancellationToken);
+            review.User = await _userService.GetByIdAsync(reviewDto.UserId, cancellationToken);
 
-            if (! await _reviewRepository.Add(review, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong while saving");
-                return StatusCode(500, ModelState);
-            }
+            await _reviewService.AddAsync(review, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             var createdReviewDto = _mapper.Map<ReviewReadDto>(review);
-            return CreatedAtAction(nameof(GetReview), new { reviewId = createdReviewDto.Id }, createdReviewDto);
+            return CreatedAtAction(nameof(GetReviewByIdAsync), new { reviewId = createdReviewDto.Id }, createdReviewDto);
         }
 
         /// <summary>
@@ -135,7 +140,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Обновленный отзыв.</returns>
         [HttpPut("{reviewId}")]
-        public async Task<IActionResult> UpdateReview(int reviewId, [FromBody] ReviewUpdateDto updatedReview, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateReviewAsync(int reviewId, [FromBody] ReviewUpdateDto updatedReview, CancellationToken cancellationToken)
         {
             if (updatedReview == null)
                 return BadRequest(ModelState);
@@ -143,23 +148,20 @@ namespace MyApp.Controllers
             if (reviewId != updatedReview.Id)
                 return BadRequest(ModelState);
 
-            if (! await _reviewRepository.Exists(reviewId, cancellationToken))
+            if (! await _reviewService.ExistsAsync(reviewId, cancellationToken))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var review = await _reviewRepository.GetById(reviewId, cancellationToken);
+            var review = await _reviewService.GetByIdAsync(reviewId, cancellationToken);
 
-            review.Product = await _productRepository.GetById(updatedReview.ProductId, cancellationToken);
-            review.User = await _userRepository.GetById(updatedReview.UserId, cancellationToken);
+            review.Product = await _productService.GetByIdAsync(updatedReview.ProductId, cancellationToken);
+            review.User = await _userService.GetByIdAsync(updatedReview.UserId, cancellationToken);
             review.ReviewText = updatedReview.ReviewText;
 
-            if (! await _reviewRepository.Update(review, cancellationToken))
-            {
-                ModelState.AddModelError("", "Something went wrong updating review");
-                return StatusCode(500, ModelState);
-            }
+            await _reviewService.UpdateAsync(review, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             return NoContent();
         }
@@ -171,9 +173,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{reviewId}")]
-        public async Task<IActionResult> DeleteReview(int reviewId, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteReviewAsync(int reviewId, CancellationToken cancellationToken)
         {
-            if (! await _reviewRepository.Exists(reviewId, cancellationToken))
+            if (! await _reviewService.ExistsAsync(reviewId, cancellationToken))
             {
                 return NotFound();
             }
@@ -181,10 +183,7 @@ namespace MyApp.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (!await _reviewRepository.DeleteById(reviewId, cancellationToken)) 
-            {
-                ModelState.AddModelError("", "Something went wrong deleting review");
-            }
+            await _reviewService.DeleteByIdAsync(reviewId, cancellationToken);
 
             return NoContent();
         }
@@ -196,19 +195,16 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("/DeleteReviewsByUser/{userId}")]
-        public async Task<IActionResult> DeleteReviewsByUser(int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteReviewsByUserAsync(int userId, CancellationToken cancellationToken)
         {
-            if (!await _userRepository.Exists(userId, cancellationToken))
+            if (!await _userService.ExistsAsync(userId, cancellationToken))
                 return NotFound();
 
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            if (!await _reviewRepository.DeleteByUserId(userId, cancellationToken))
-            {
-                ModelState.AddModelError("", "error deleting reviews");
-                return StatusCode(500, ModelState);
-            }
+            await _reviewService.DeleteByUserIdAsync(userId, cancellationToken);
+
             return NoContent();
         }
     }

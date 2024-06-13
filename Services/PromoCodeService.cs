@@ -1,22 +1,18 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
 using MyApp.Repository.BASE;
+using MyApp.Services.BASE;
 
-namespace MyApp.Repository
+namespace MyApp.Services
 {
     /// <summary>
     /// Репозиторий для управления операциями, связанными с промокодами.
     /// </summary>
     /// <typeparam name="PromoCode">Тип сущности промокода.</typeparam>
-    public class PromoCodeRepository : BaseRepository<PromoCode>, IPromoCodeRepository
+    public class PromoCodeService : BaseService<PromoCode>, IPromoCodeService
     {
-        /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="PromoCodeRepository"/>.
-        /// </summary>
-        /// <param name="context">Контекст базы данных приложения.</param>
-        public PromoCodeRepository(ApplicationDbContext context) : base(context)
+        public PromoCodeService(IBaseRepository<PromoCode> repository) : base(repository)
         {
         }
 
@@ -26,7 +22,7 @@ namespace MyApp.Repository
         /// <param name="promoName">Имя промокода.</param>
         /// <param name="cancellationToken">Токен отмены для асинхронной операции.</param>
         /// <returns>Промо-код, соответствующий указанному имени.</returns>
-        public async Task<PromoCode> GetByName(string promoName, CancellationToken cancellationToken = default)
+        public async Task<PromoCode> GetByNameAsync(string promoName, CancellationToken cancellationToken = default)
         {
             return await GetAll()
                 .Where(r => r.PromoName == promoName)

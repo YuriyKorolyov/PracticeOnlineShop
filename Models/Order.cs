@@ -1,4 +1,4 @@
-﻿using MyApp.Interfaces.BASE;
+﻿using MyApp.Repository.BASE;
 
 namespace MyApp.Models
 {
@@ -41,6 +41,17 @@ namespace MyApp.Models
         /// Получает или задает коллекцию деталей заказа.
         /// </summary>
         public ICollection<OrderDetail> OrderDetails { get; set; }
+
+        public Order() { }
+
+        public Order(decimal totalAmount, OrderStatus status, User user, ICollection<OrderDetail> orderDetails)
+        {
+            OrderDate = DateTime.UtcNow;
+            TotalAmount = totalAmount;
+            Status = status;
+            User = user;
+            OrderDetails = orderDetails;
+        }
     }
 
     /// <summary>

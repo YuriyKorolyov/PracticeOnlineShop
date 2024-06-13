@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
+using MyApp.Repository.UnitOfWorks;
 
 namespace MyApp.Controllers
 {
@@ -17,23 +18,30 @@ namespace MyApp.Controllers
     [ApiController]
     public class CartController : ControllerBase
     {
-        private readonly ICartRepository _cartRepository;
-        private readonly IProductRepository _productRepository;
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICartService _cartService;
+        private readonly IProductService _productService;
+        private readonly IUserService _userService;
         private readonly IMapper _mapper;
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="CartController"/>.
         /// </summary>
-        /// <param name="cartRepository">Репозиторий для работы с корзиной.</param>
-        /// <param name="productRepository">Репозиторий для работы с продуктами.</param>
-        /// <param name="userRepository">Репозиторий для работы с пользователями.</param>
+        /// <param name="cartService">Репозиторий для работы с корзиной.</param>
+        /// <param name="productService">Репозиторий для работы с продуктами.</param>
+        /// <param name="userService">Репозиторий для работы с пользователями.</param>
         /// <param name="mapper">Интерфейс для маппинга объектов.</param>
-        public CartController(ICartRepository cartRepository, IProductRepository productRepository, IUserRepository userRepository, IMapper mapper)
+        public CartController(
+            IUnitOfWork unitOfWork,
+            ICartService cartService, 
+            IProductService productService, 
+            IUserService userService, 
+            IMapper mapper)
         {
-            _cartRepository = cartRepository;
-            _productRepository = productRepository;
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
+            _cartService = cartService;
+            _productService = productService;
+            _userService = userService;
             _mapper = mapper;
         }
 
@@ -44,9 +52,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Список корзин пользователя.</returns>
         [HttpGet("{userId}")]
-        public async Task<ActionResult<IEnumerable<CartReadDto>>> GetCartsByUserId(int userId, CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<CartReadDto>>> GetCartsByUserIdAsync(int userId, CancellationToken cancellationToken)
         {
-            var carts = await _cartRepository.GetByUserId(userId)
+            var carts = await _cartService.GetByUserId(userId)
             .ProjectTo<CartReadDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
             return Ok(carts);
@@ -59,9 +67,9 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Созданная корзина.</returns>
         [HttpPost]
-        public async Task<ActionResult<CartReadDto>> AddToCart([FromBody] CartCreateDto cartDto, CancellationToken cancellationToken)
+        public async Task<ActionResult<CartReadDto>> AddToCartAsync([FromBody] CartCreateDto cartDto, CancellationToken cancellationToken)
         {
-            var product = await _productRepository.GetById(cartDto.ProductId, cancellationToken);
+            var product = await _productService.GetByIdAsync(cartDto.ProductId, cancellationToken);
             if (product == null)
             {
                 return NotFound(); 
@@ -74,12 +82,13 @@ namespace MyApp.Controllers
             var cart = _mapper.Map<Cart>(cartDto);
 
             cart.Product = product;
-            cart.User = await _userRepository.GetById(cartDto.UserId, cancellationToken);
+            cart.User = await _userService.GetByIdAsync(cartDto.UserId, cancellationToken);
 
-            await _cartRepository.Add(cart, cancellationToken);
+            await _cartService.AddAsync(cart, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             var createdCartDto = _mapper.Map<CartReadDto>(cart);
-            return CreatedAtAction(nameof(GetCartsByUserId), new { userId = cartDto.UserId }, createdCartDto);
+            return CreatedAtAction(nameof(GetCartsByUserIdAsync), new { userId = cartDto.UserId }, createdCartDto);
         }
 
         /// <summary>
@@ -89,23 +98,24 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{cartId}")]
-        public async Task<IActionResult> RemoveFromCart(int cartId, CancellationToken cancellationToken)
+        public async Task<IActionResult> RemoveFromCartAsync(int cartId, CancellationToken cancellationToken)
         {
-            await _cartRepository.DeleteById(cartId, cancellationToken);
+            await _cartService.DeleteByIdAsync(cartId, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
             return NoContent();
         }
 
         /// <summary>
         /// Обновляет информацию в корзине.
         /// </summary>
-        /// <param name="cartId">Идентификатор корзины.</param>
-        /// <param name="cartDto">Данные для обновления корзины.</param>
+        /// <param name="userId">Идентификатор пользователя.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{userId}/clear")]
-        public async Task<IActionResult> ClearCart(int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> ClearCartAsync(int userId, CancellationToken cancellationToken)
         {
-            await _cartRepository.DeleteByUserId(userId, cancellationToken);
+            await _cartService.DeleteByUserIdAsync(userId, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
             return NoContent();
         }
 
@@ -117,14 +127,14 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{cartId}")]
-        public async Task<IActionResult> UpdateCart(int cartId, [FromBody] CartUpdateDto cartDto, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateCartAsync(int cartId, [FromBody] CartUpdateDto cartDto, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var product = await _productRepository.GetById(cartDto.ProductId, cancellationToken);
+            var product = await _productService.GetByIdAsync(cartDto.ProductId, cancellationToken);
             if (product == null)
             {
                 return NotFound("Product not found.");
@@ -135,27 +145,33 @@ namespace MyApp.Controllers
                 return BadRequest($"Not enough stock for product {product.Name}. Available: {product.StockQuantity}, Requested: {cartDto.Quantity}");
             }
 
-            var cart = await _cartRepository.GetById(cartId, cancellationToken);
+            var cart = await _cartService.GetByIdAsync(cartId, cancellationToken);
 
             if (cart == null)
             {
                 return NotFound("Cart not found.");
             }
 
-            var user = await _userRepository.GetById(cartDto.UserId, cancellationToken);
+            var user = await _userService.GetByIdAsync(cartDto.UserId, cancellationToken);
             if (user == null)
             {
                 return NotFound("User not found.");
             }
 
-            if (cart.User.Id != cartDto.UserId || cart.Product.Id != cartDto.ProductId)
+            if (cart.User.Id != cartDto.UserId)
             {
-                return BadRequest("User ID or Product ID mismatch.");
+                return BadRequest("User ID mismatch.");
+            }
+
+            if (cart.Product.Id != cartDto.ProductId)
+            {
+                return BadRequest("Product ID mismatch.");
             }
 
             cart.Quantity = cartDto.Quantity;
 
-            await _cartRepository.Update(cart, cancellationToken);
+            await _cartService.UpdateAsync(cart, cancellationToken);
+            await _unitOfWork.SaveAsync(cancellationToken);
 
             return NoContent();
         }

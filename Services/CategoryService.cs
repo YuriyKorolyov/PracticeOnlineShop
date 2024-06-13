@@ -1,27 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Dto.Create;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
 using MyApp.Repository.BASE;
+using MyApp.Services.BASE;
 
-namespace MyApp.Repository
+namespace MyApp.Services
 {
     /// <summary>
     /// Репозиторий для управления операциями, связанными с категориями продуктов.
     /// </summary>
     /// <typeparam name="Category">Тип сущности категории.</typeparam>
-    public class CategoryRepository : BaseRepository<Category>, ICategoryRepository
+    public class CategoryService : BaseService<Category>, ICategoryService
     {
-        private readonly ApplicationDbContext _context;
-
-        /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="CategoryRepository"/>.
-        /// </summary>
-        /// <param name="context">Контекст базы данных приложения.</param>
-        public CategoryRepository(ApplicationDbContext context) : base(context)
+        public CategoryService(IBaseRepository<Category> repository) : base(repository)
         {
-            _context = context;
         }
 
         /// <summary>
@@ -31,21 +23,23 @@ namespace MyApp.Repository
         /// <returns>Объект <see cref="IQueryable{T}"/>, представляющий коллекцию продуктов для указанной категории.</returns>
         public IQueryable<Product> GetProductsByCategory(int categoryId)
         {
-            return _context.ProductCategories
-                .Where(e => e.CategoryId == categoryId)
-                .Select(c => c.Product)
+            return GetAll()
+                .Where(c => c.Id == categoryId)
+                .SelectMany(c => c.ProductCategories)
+                .Select(pc => pc.Product)
                 .AsNoTracking();
         }
 
         /// <summary>
         /// Извлекает категорию по имени с удалением пробелов в начале и конце строки и преобразованием к верхнему регистру.
         /// </summary>
-        /// <param name="categoryCreate">Данные для создания категории.</param>
+        /// <param name="categoryName">Название категории.</param>
         /// <param name="cancellationToken">Токен для отслеживания запросов на отмену.</param>
-        /// <returns>Задача, представляющая асинхронную операцию. Результат задачи содержит объект категории.</returns>
-        public async Task<Category> GetCategoryTrimToUpperAsync(CategoryCreateDto categoryCreate, CancellationToken cancellationToken = default)
+        /// <returns>Задача, представляющая асинхронную операцию. Результат задачи содержит значение true, если категория существует, иначе false.</returns>
+        public async Task<bool> ExistsByNameAsync(string categoryName, CancellationToken cancellationToken = default)
         {
-            return await GetAll().Where(c => c.CategoryName.Trim().ToUpper() == categoryCreate.CategoryName.TrimEnd().ToUpper()).FirstOrDefaultAsync(cancellationToken);
+            return await GetAll()
+                .AnyAsync(c => c.CategoryName.Trim().ToUpper() == categoryName.TrimEnd().ToUpper(), cancellationToken);
         }
     }
 }

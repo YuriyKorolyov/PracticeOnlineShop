@@ -1,12 +1,12 @@
-﻿using MyApp.Interfaces.BASE;
-using MyApp.Models;
+﻿using MyApp.Models;
+using MyApp.IServices.BASE;
 
-namespace MyApp.Interfaces
+namespace MyApp.IServices
 {
     /// <summary>
     /// Предоставляет методы для работы с хранилищем пользователей.
     /// </summary>
-    public interface IUserRepository : IBaseRepository<User>
+    public interface IUserService : IBaseService<User>
     {
     }
 }

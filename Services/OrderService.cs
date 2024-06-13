@@ -1,22 +1,18 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Interfaces;
+using MyApp.IServices;
 using MyApp.Models;
 using MyApp.Repository.BASE;
+using MyApp.Services.BASE;
 
-namespace MyApp.Repository
+namespace MyApp.Services
 {
     /// <summary>
     /// Репозиторий для управления операциями, связанными с заказами.
     /// </summary>
     /// <typeparam name="Order">Тип сущности заказа.</typeparam>
-    public class OrderRepository : BaseRepository<Order>, IOrderRepository
+    public class OrderService : BaseService<Order>, IOrderService
     {
-        /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="OrderRepository"/>.
-        /// </summary>
-        /// <param name="context">Контекст базы данных приложения.</param>
-        public OrderRepository(ApplicationDbContext context) : base(context) 
+        public OrderService(IBaseRepository<Order> repository) : base(repository)
         {
         }
 
