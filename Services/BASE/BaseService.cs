@@ -8,7 +8,6 @@ namespace MyApp.Services.BASE
     public class BaseService<TEntity> : IBaseService<TEntity> where TEntity : class, IEntity
     {
         public IBaseRepository<TEntity> Repository;
-        //public ApplicationDbContext Context => Repository.Context;
 
         public BaseService(IBaseRepository<TEntity> repository)
         {
@@ -50,9 +49,9 @@ namespace MyApp.Services.BASE
             return await Repository.GetByIdAsync(id, cancellationToken);
         }
 
-        public async Task<TEntity> GetByIdAsync(int id, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties)
+        public async Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> condition, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties)
         {
-            return await Repository.GetByIdAsync(id, cancellationToken, includeProperties);
+            return await Repository.GetAsync(condition, cancellationToken, includeProperties);
         }
 
         public async Task<TEntity> GetByIdAsync(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> include, CancellationToken cancellationToken = default)

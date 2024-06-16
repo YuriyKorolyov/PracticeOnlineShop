@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MyApp.Dto.Create;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
 using MyApp.Models;
@@ -23,6 +24,9 @@ namespace MyApp.MappingProfiles
 
             CreateMap<UserUpdateDto, User>()
             .ForMember(dest => dest.Role, opt => opt.Ignore());
+
+            CreateMap<User, UserExcelDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
         }
     }
 }

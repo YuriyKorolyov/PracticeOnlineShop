@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MyApp.Dto.Create;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
 using MyApp.Models;
@@ -25,6 +26,10 @@ namespace MyApp.MappingProfiles
             CreateMap<ViewHistoryUpdateDto, ViewHistory>()
             .ForMember(dest => dest.Product, opt => opt.Ignore())
             .ForMember(dest => dest.User, opt => opt.Ignore());
+
+            CreateMap<ViewHistory, ViewHistoryExcelDto>()
+                .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.Product.Id))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.User.Id));
         }
     }
 }

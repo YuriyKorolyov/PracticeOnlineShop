@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MyApp.Dto.Create;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
 using MyApp.Models;
@@ -21,6 +22,8 @@ namespace MyApp.MappingProfiles
             CreateMap<PromoCode, PromoCodeReadDto>();
 
             CreateMap<PromoCodeUpdateDto, PromoCode>();
+
+            CreateMap<PromoCode, PromoCodeExcelDto>();
         }
     }
 }

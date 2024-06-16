@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MyApp.Dto.Create;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Models;
 
@@ -18,6 +19,8 @@ namespace MyApp.MappingProfiles
             CreateMap<RoleCreateDto, Role>();
 
             CreateMap<Role, RoleReadDto>();
+
+            CreateMap<Role, RoleExcelDto>();
         }
     }
 }

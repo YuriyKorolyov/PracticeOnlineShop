@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MyApp.Dto.Create;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
 using MyApp.Models;
@@ -25,6 +26,8 @@ namespace MyApp.MappingProfiles
             CreateMap<Category, CategoryReadDto>();
 
             CreateMap<CategoryUpdateDto, Category>();
+
+            CreateMap<Category, CategoryExcelDto>();                
         }
     }
 }

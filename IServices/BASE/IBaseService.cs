@@ -6,7 +6,6 @@ namespace MyApp.IServices.BASE
 {
     public interface IBaseService<TEntity> where TEntity : class, IEntity
     {
-        //ApplicationDbContext Context { get; }
         /// <summary>
         /// Проверяет существование сущности по ее идентификатору.
         /// </summary>
@@ -25,7 +24,7 @@ namespace MyApp.IServices.BASE
         /// <summary>
         /// Получает сущность по ее идентификатору с возможностью включения связанных сущностей.
         /// </summary>
-        Task<TEntity> GetByIdAsync(int id, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties);
+        Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> condition, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties);
 
         /// <summary>
         /// Получает сущность по ее идентификатору с возможностью дополнительного включения связанных сущностей с использованием функции Include.

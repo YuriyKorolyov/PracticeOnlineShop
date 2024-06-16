@@ -23,18 +23,11 @@ namespace MyApp.Repository.BASE
             _dbSet = _context.Set<TEntity>();
         }
 
-        //public ApplicationDbContext Context => _context;
-
         /// <inheritdoc/>
         public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
         {
             return await _dbSet.AnyAsync(e => e.Id == id, cancellationToken);
         }
-
-        //public IQueryable<TEntity> GetAll()
-        //{
-        //    return _dbSet.AsQueryable();
-        //}
 
         /// <inheritdoc/>
         public IQueryable<TEntity> GetAll()
@@ -51,9 +44,12 @@ namespace MyApp.Repository.BASE
         }
 
         /// <inheritdoc/>
-        public async Task<TEntity> GetByIdAsync(int id, CancellationToken cancellationToken = default, params Expression<Func<TEntity, object>>[] includeProperties)
+        public async Task<TEntity> GetAsync(
+            Expression<Func<TEntity, bool>> condition,
+            CancellationToken cancellationToken = default, 
+            params Expression<Func<TEntity, object>>[] includeProperties)
         {
-            var query = _dbSet.Where(e => e.Id == id);
+            var query = _dbSet.Where(condition);
 
             foreach (var includeProperty in includeProperties)
             {
@@ -64,7 +60,10 @@ namespace MyApp.Repository.BASE
         }
 
         /// <inheritdoc/>
-        public async Task<TEntity> GetByIdAsync(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> include, CancellationToken cancellationToken)
+        public async Task<TEntity> GetByIdAsync(
+            int id,
+            Func<IQueryable<TEntity>, IQueryable<TEntity>> include = null,
+            CancellationToken cancellationToken = default)
         {
             IQueryable<TEntity> query = _dbSet.Where(e => e.Id == id);
 

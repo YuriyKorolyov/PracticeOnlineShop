@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MyApp.Dto.Create;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
 using MyApp.Models;
@@ -23,8 +24,11 @@ namespace MyApp.MappingProfiles
             CreateMap<Payment, PaymentReadDto>();
 
             CreateMap<PaymentUpdateDto, Payment>()
-            .ForMember(dest => dest.Order, opt => opt.Ignore())
-            .ForMember(dest => dest.PromoCode, opt => opt.Ignore());
+                .ForMember(dest => dest.Order, opt => opt.Ignore())
+                .ForMember(dest => dest.PromoCode, opt => opt.Ignore());
+
+            CreateMap<Payment, PaymentExcelDto>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
         }
     }
 }

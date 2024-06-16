@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Models;
 
@@ -16,7 +17,9 @@ namespace MyApp.MappingProfiles
         {
             CreateMap<Order, OrderReadDto>();
 
-            CreateMap<OrderDetail,  OrderDetailReadDto>();
+            CreateMap<Order, OrderExcelDto>()
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.User.Id))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
         }
     }
 }

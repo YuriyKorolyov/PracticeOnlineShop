@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MyApp.Dto.Create;
+using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
 using MyApp.Dto.Update;
 using MyApp.Models;
@@ -22,6 +23,8 @@ namespace MyApp.MappingProfiles
             .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.ProductCategories.Select(pc => pc.Category)));
             
             CreateMap<ProductUpdateDto, Product>();
+
+            CreateMap<Product, ProductExcelDto>();
         }
     }
 }
