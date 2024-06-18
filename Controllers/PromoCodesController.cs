@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
@@ -16,6 +17,7 @@ namespace MyApp.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "RequireAdminRole")]
     public class PromoCodesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -25,6 +27,7 @@ namespace MyApp.Controllers
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="PromoCodesController"/>.
         /// </summary>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
         /// <param name="promoCodeService">Репозиторий для работы с промокодами.</param>
         /// <param name="mapper">Интерфейс для маппинга объектов.</param>
         public PromoCodesController(

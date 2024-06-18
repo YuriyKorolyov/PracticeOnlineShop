@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MyApp.Configurations;
 using MyApp.Models;
 
@@ -7,20 +9,15 @@ namespace MyApp.Data
     /// <summary>
     /// Представляет контекст базы данных для приложения.
     /// </summary>
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, int>//IdentityDbContext<User>
     {
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="ApplicationDbContext"/>.
         /// </summary>
-        /// <param name="options">Параметры для настройки контекста базы данных.</param>
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        /// <param name="dbContextOptions">Параметры для настройки контекста базы данных.</param>
+        public ApplicationDbContext(DbContextOptions dbContextOptions) : base(dbContextOptions)
         {
         }
-
-        /// <summary>
-        /// Получает или задает набор данных для таблицы пользователей.
-        /// </summary>
-        public DbSet<User> Users { get; set; }
 
         /// <summary>
         /// Получает или задает набор данных для таблицы продуктов.
@@ -73,11 +70,6 @@ namespace MyApp.Data
         public DbSet<ProductCategory> ProductCategories { get; set; }
 
         /// <summary>
-        /// Получает или задает набор данных для таблицы ролей.
-        /// </summary>
-        public DbSet<Role> Roles { get; set; }
-
-        /// <summary>
         /// Применяет конфигурации к модели при ее создании.
         /// </summary>
         /// <param name="modelBuilder">Построитель модели контекста базы данных.</param>
@@ -95,9 +87,9 @@ namespace MyApp.Data
             modelBuilder.ApplyConfiguration(new ProductConfiguration());
             modelBuilder.ApplyConfiguration(new PromoCodeConfiguration());
             modelBuilder.ApplyConfiguration(new ReviewConfiguration());
-            modelBuilder.ApplyConfiguration(new RoleConfiguration());
             modelBuilder.ApplyConfiguration(new UserConfiguration());
-            modelBuilder.ApplyConfiguration(new ViewHistoryConfiguration());            
+            modelBuilder.ApplyConfiguration(new ViewHistoryConfiguration());
+            modelBuilder.ApplyConfiguration(new IdentityRoleConfiguration());            
         }
     }
 

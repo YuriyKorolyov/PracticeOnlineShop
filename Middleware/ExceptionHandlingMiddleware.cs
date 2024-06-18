@@ -2,28 +2,28 @@
 
 namespace MyApp.Middleware
 {
+    /// <summary>
+    /// Middleware для обработки исключений в HTTP-запросах.
+    /// </summary>
     public class ExceptionHandlingMiddleware : IMiddleware
     {
-        /// <summary>
-        /// Промежуточное ПО для обработки отмены задач.
-        /// </summary>
-        private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="ExceptionHandlingMiddleware"/>.
         /// </summary>
-        /// <param name="logger">Логгер.</param>
+        /// <param name="logger">Логгер для записи сообщений об ошибках.</param>
         public ExceptionHandlingMiddleware(ILogger<ExceptionHandlingMiddleware> logger)
         {
             _logger = logger;
         }
 
         /// <summary>
-        /// Вызывает промежуточное ПО для обработки отмены задач.
+        /// Обрабатывает HTTP-запрос и вызывает следующее промежуточное ПО в цепочке запроса.
         /// </summary>
         /// <param name="context">Контекст HTTP-запроса.</param>
-        /// <param name="next">Следующий обработчик запроса.</param>
+        /// <param name="next">Следующее промежуточное ПО в цепочке запроса.</param>
+        /// <returns>Асинхронную задачу для обработки запроса.</returns>
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
         {
             try
@@ -35,6 +35,10 @@ namespace MyApp.Middleware
                 _logger.LogWarning("Request was cancelled.");
                 await HandleTaskCanceledExceptionAsync(context);
             }
+            catch (UnauthorizedAccessException)
+            {
+                await HandleUnauthorizedAccessExceptionAsync(context);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An unhandled exception has occurred.");
@@ -42,6 +46,11 @@ namespace MyApp.Middleware
             }
         }
 
+        /// <summary>
+        /// Обрабатывает исключение TaskCanceledException и возвращает соответствующий HTTP-ответ.
+        /// </summary>
+        /// <param name="context">Контекст HTTP-запроса.</param>
+        /// <returns>Асинхронную задачу для обработки исключения.</returns>
         private Task HandleTaskCanceledExceptionAsync(HttpContext context)
         {
             context.Response.ContentType = "application/json";
@@ -51,6 +60,26 @@ namespace MyApp.Middleware
             return context.Response.WriteAsync(result);
         }
 
+        /// <summary>
+        /// Обрабатывает исключение UnauthorizedAccessException и возвращает соответствующий HTTP-ответ.
+        /// </summary>
+        /// <param name="context">Контекст HTTP-запроса.</param>
+        /// <returns>Асинхронную задачу для обработки исключения.</returns>
+        private Task HandleUnauthorizedAccessExceptionAsync(HttpContext context)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            var result = JsonSerializer.Serialize(new { error = "Unauthorized access." });
+            return context.Response.WriteAsync(result);
+        }
+
+        /// <summary>
+        /// Обрабатывает общее исключение и возвращает соответствующий HTTP-ответ с информацией об ошибке.
+        /// </summary>
+        /// <param name="context">Контекст HTTP-запроса.</param>
+        /// <param name="exception">Исключение, которое произошло во время обработки запроса.</param>
+        /// <returns>Асинхронную задачу для обработки исключения.</returns>
         private Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";

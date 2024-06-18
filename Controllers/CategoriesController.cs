@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
@@ -25,7 +26,8 @@ namespace MyApp.Controllers
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="CategoriesController"/>.
         /// </summary>
-        /// <param name="categoryService">Репозиторий для работы с категориями.</param>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
+        /// <param name="categoryService">Сервис для работы с категориями.</param>
         /// <param name="mapper">Интерфейс для маппинга объектов.</param>
         public CategoriesController(
             IUnitOfWork unitOfWork,
@@ -101,6 +103,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Созданная категория.</returns>
         [HttpPost]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<ActionResult<CategoryReadDto>> AddCategoryAsync([FromBody] CategoryCreateDto categoryCreate, CancellationToken cancellationToken)
         {
             if (categoryCreate == null)
@@ -132,6 +135,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{categoryId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> UpdateCategoryAsync(int categoryId, [FromBody] CategoryUpdateDto updatedCategory, CancellationToken cancellationToken)
         {
             if (updatedCategory == null)
@@ -162,6 +166,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{categoryId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> DeleteCategoryAsync(int categoryId, CancellationToken cancellationToken)
         {
             if (! await _categoryService.ExistsAsync(categoryId, cancellationToken))

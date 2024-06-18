@@ -1,19 +1,8 @@
-﻿using MyApp.Data;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
+using MyApp.Models.BASE;
 
 namespace MyApp.Repository.BASE
 {
-    /// <summary>
-    /// Представляет базовую сущность с идентификатором.
-    /// </summary>
-    public interface IEntity
-    {
-        /// <summary>
-        /// Получает или задает идентификатор сущности.
-        /// </summary>
-        int Id { get; set; }
-    }
-
     /// <summary>
     /// Интерфейс для базового репозитория сущностей.
     /// </summary>

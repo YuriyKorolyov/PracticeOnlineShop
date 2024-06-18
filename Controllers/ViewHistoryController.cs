@@ -8,6 +8,7 @@ using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using MyApp.IServices;
 using MyApp.Repository.UnitOfWorks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MyApp.Controllers
 {
@@ -27,6 +28,7 @@ namespace MyApp.Controllers
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="ViewHistoriesController"/>.
         /// </summary>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
         /// <param name="viewHistoryService">Репозиторий для управления историей просмотров.</param>
         /// <param name="productService">Репозиторий для управления продуктами.</param>
         /// <param name="userService">Репозиторий для управления пользователями.</param>
@@ -52,6 +54,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>История просмотров пользователя.</returns>
         [HttpGet]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<ActionResult<IEnumerable<ViewHistoryReadDto>>> GetViewHistoryByUserAsync([FromQuery] int userId, CancellationToken cancellationToken)
         {
             var viewHistory = await _viewHistoryService.GetByUserId(userId)
@@ -71,6 +74,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>История просмотра.</returns>
         [HttpGet("{viewId}")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<ActionResult<ViewHistoryReadDto>> GetViewHistoryByIdAsync(int viewId, CancellationToken cancellationToken)
         {
             if (!await _viewHistoryService.ExistsAsync(viewId, cancellationToken))
@@ -93,6 +97,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Количество просмотров.</returns>
         [HttpGet("product/{prodId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<ActionResult<int>> GetCountVHForAProductAsync(int prodId, CancellationToken cancellationToken)
         {
             var views = await _viewHistoryService.GetCountViewHistoryOfAProductAsync(prodId, cancellationToken);
@@ -110,6 +115,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Созданная запись об истории просмотра.</returns>
         [HttpPost]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<ActionResult> AddViewHistoryAsync([FromBody] ViewHistoryCreateDto viewDto, CancellationToken cancellationToken)
         {
             if (viewDto == null)
@@ -138,6 +144,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{viewId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> UpdateViewHistoryAsync(int viewId, [FromBody] ViewHistoryUpdateDto updatedView, CancellationToken cancellationToken)
         {
             if (updatedView == null)
@@ -168,6 +175,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("/DeleteViewHistoryByUser/{userId}")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<IActionResult> DeleteViewHistoryByUserAsync(int userId, CancellationToken cancellationToken)
         {
             if (!await _userService.ExistsAsync(userId, cancellationToken))

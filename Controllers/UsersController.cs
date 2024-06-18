@@ -8,6 +8,7 @@ using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using MyApp.IServices;
 using MyApp.Repository.UnitOfWorks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MyApp.Controllers
 {
@@ -16,28 +17,26 @@ namespace MyApp.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "RequireAdminRole")]
     public class UsersController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUserService _userService;
-        private readonly IRoleService _roleService;
         private readonly IMapper _mapper;
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="UsersController"/>.
         /// </summary>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
         /// <param name="userService">Репозиторий для управления пользователями.</param>
-        /// <param name="roleService">Репозиторий для управления ролями.</param>
         /// <param name="mapper">Интерфейс для отображения объектов.</param>
         public UsersController(
             IUnitOfWork unitOfWork,
             IUserService userService, 
-            IRoleService roleService, 
             IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _userService = userService;
-            _roleService = roleService;
             _mapper = mapper;
         }
 
@@ -47,15 +46,12 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Список пользователей.</returns>
         [HttpGet]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsersAsync(CancellationToken cancellationToken)
         {
             var userDtos = await _userService.GetAll()
-                .Include(u => u.Role)
                 .ProjectTo<UserReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
-
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
 
             return Ok(userDtos);
         }
@@ -67,17 +63,14 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Пользователь.</returns>
         [HttpGet("{userId}")]
+        [Authorize]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<ActionResult<UserReadDto>> GetUserByIdAsync(int userId, CancellationToken cancellationToken)
         {
             if (!await _userService.ExistsAsync(userId, cancellationToken))
                 return NotFound();
 
-            var userDto = _mapper.Map<UserReadDto>(await _userService.GetByIdAsync(userId, query =>
-            query.Include(u => u.Role),
-            cancellationToken));
-
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var userDto = _mapper.Map<UserReadDto>(await _userService.GetByIdAsync(userId, cancellationToken));
 
             return Ok(userDto);
         }
@@ -89,6 +82,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Созданный пользователь.</returns>
         [HttpPost]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<ActionResult<UserReadDto>> AddUserAsync([FromBody] UserCreateDto userDto, CancellationToken cancellationToken)
         {
             if (userDto == null)
@@ -98,7 +92,6 @@ namespace MyApp.Controllers
                 return BadRequest(ModelState);
 
             var user = _mapper.Map<User>(userDto);
-            user.Role = await _roleService.GetByIdAsync(userDto.RoleId, cancellationToken);
 
             await _userService.AddAsync(user, cancellationToken);
             await _unitOfWork.SaveAsync(cancellationToken);
@@ -115,6 +108,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{userId}")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<IActionResult> UpdateUserAsync(int userId, [FromBody] UserUpdateDto userDto, CancellationToken cancellationToken)
         {
             if (userDto == null)
@@ -130,7 +124,6 @@ namespace MyApp.Controllers
                 return BadRequest();
 
             var user = await _userService.GetByIdAsync(userId, cancellationToken);
-            user.Role = await _roleService.GetByIdAsync(userDto.RoleId, cancellationToken);
             user.FirstName = userDto.FirstName;
             user.LastName = userDto.LastName;
             user.Email = userDto.Email;
@@ -150,6 +143,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{userId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> DeleteUserAsync(int userId, CancellationToken cancellationToken)
         {
             if (!await _userService.ExistsAsync(userId, cancellationToken))

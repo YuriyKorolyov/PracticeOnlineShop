@@ -44,10 +44,5 @@
         /// Получает или задает дату регистрации пользователя.
         /// </summary>
         public DateTime RegistrationDate { get; set; }
-
-        /// <summary>
-        /// Получает или задает роль пользователя.
-        /// </summary>
-        public RoleReadDto Role { get; set; }
     }
 }

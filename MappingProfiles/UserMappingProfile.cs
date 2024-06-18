@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using MyApp.Dto.Account;
 using MyApp.Dto.Create;
 using MyApp.Dto.ExportToExcel;
 using MyApp.Dto.Read;
@@ -17,16 +18,17 @@ namespace MyApp.MappingProfiles
         /// </summary>
         public UserMappingProfile()
         {
-            CreateMap<UserCreateDto, User>()
-            .ForMember(dest => dest.Role, opt => opt.Ignore());
+            CreateMap<UserCreateDto, User>();
 
             CreateMap<User, UserReadDto>();
 
-            CreateMap<UserUpdateDto, User>()
-            .ForMember(dest => dest.Role, opt => opt.Ignore());
+            CreateMap<UserUpdateDto, User>();
 
-            CreateMap<User, UserExcelDto>()
-                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
+            CreateMap<User, UserExcelDto>();
+
+            CreateMap<RegisterDto, User>()
+                .ForMember(dest => dest.RegistrationDate, opt => opt.MapFrom(src => DateTime.Now));
+
         }
     }
 }

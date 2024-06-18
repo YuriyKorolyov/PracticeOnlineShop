@@ -1,7 +1,8 @@
-﻿using MyApp.Models;
-
-namespace MyApp.Dto.ExportToExcel
+﻿namespace MyApp.Dto.ExportToExcel
 {
+    /// <summary>
+    /// DTO для экспорта данных деталей заказа в Excel.
+    /// </summary>
     public class OrderDetailExcelDto
     {
         /// <summary>

@@ -1,5 +1,8 @@
 ﻿namespace MyApp.Dto.ExportToExcel
 {
+    /// <summary>
+    /// DTO для экспорта данных пользователя в Excel.
+    /// </summary>
     public class UserExcelDto
     {
         public int Id { get; set; }
@@ -10,6 +13,5 @@
         public string ShippingAddress { get; set; }
         public string PhoneNumber { get; set; }
         public DateTime RegistrationDate { get; set; }
-        public string RoleName { get; set; }
     }
 }

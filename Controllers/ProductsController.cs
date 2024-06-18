@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
@@ -27,6 +28,7 @@ namespace MyApp.Controllers
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="ProductsController"/>.
         /// </summary>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
         /// <param name="productService">Репозиторий для работы с продуктами.</param>
         /// <param name="reviewService">Репозиторий для работы с отзывами.</param>
         /// <param name="categoryService">Репозиторий для работы с категориями.</param>
@@ -51,6 +53,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Список продуктов.</returns>
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<ProductReadDto>>> GetProductsAsync(CancellationToken cancellationToken)
         {
             var productDtos = await _productService.GetAll()
@@ -72,6 +75,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Рейтинг продукта.</returns>
         [HttpGet("{prodId}/rating")]
+        [AllowAnonymous]
         public async Task<ActionResult<decimal>> GetProductRatingAsync(int prodId, CancellationToken cancellationToken)
         {
             if (! await _productService.ExistsAsync(prodId, cancellationToken))
@@ -92,6 +96,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Информация о продукте.</returns>
         [HttpGet("{prodId}")]
+        [Authorize]
         public async Task<ActionResult<ProductReadDto>> GetProductByIdAsync(int prodId, CancellationToken cancellationToken)
         {
             if (!await _productService.ExistsAsync(prodId, cancellationToken))
@@ -115,6 +120,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Добавленный продукт.</returns>
         [HttpPost]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<ActionResult<ProductReadDto>> AddProductAsync([FromBody] ProductCreateDto productDto, CancellationToken cancellationToken)
         {
             if (productDto == null)
@@ -154,6 +160,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{prodId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> UpdateProductAsync(int prodId, [FromBody] ProductUpdateDto productDto, CancellationToken cancellationToken)
         {
             if (productDto == null)
@@ -186,6 +193,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{prodId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> DeleteProductAsync(int prodId, CancellationToken cancellationToken)
         {
             if (! await _productService.ExistsAsync(prodId, cancellationToken))

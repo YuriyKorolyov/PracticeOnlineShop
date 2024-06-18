@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
+using MyApp.Models.BASE;
 using MyApp.Repository.UnitOfWorks;
 using System.Linq.Expressions;
 

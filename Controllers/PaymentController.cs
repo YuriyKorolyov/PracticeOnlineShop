@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Create;
@@ -16,6 +17,7 @@ namespace MyApp.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PaymentController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -27,6 +29,7 @@ namespace MyApp.Controllers
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="PaymentController"/>.
         /// </summary>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
         /// <param name="paymentService">Репозиторий для работы с платежами.</param>
         /// <param name="orderService">Репозиторий для работы с заказами.</param>
         /// <param name="promoCodeService">Репозиторий для работы с промокодами.</param>
@@ -51,6 +54,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Список платежей.</returns>
         [HttpGet]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<ActionResult<IEnumerable<PaymentReadDto>>> GetPaymentsAsync(CancellationToken cancellationToken)
         {
             var payments = await _paymentService.GetAll()
@@ -127,6 +131,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{payId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> UpdatePaymentAsync(int payId, PaymentUpdateDto paymentDto, CancellationToken cancellationToken)
         {
             if (payId != paymentDto.Id || !ModelState.IsValid)

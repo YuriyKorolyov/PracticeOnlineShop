@@ -1,7 +1,8 @@
-﻿using MyApp.Models;
-
-namespace MyApp.Dto.ExportToExcel
+﻿namespace MyApp.Dto.ExportToExcel
 {
+    /// <summary>
+    /// DTO для экспорта данных истории просмотров в Excel.
+    /// </summary>
     public class ViewHistoryExcelDto
     {
         /// <summary>

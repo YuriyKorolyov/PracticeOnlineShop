@@ -1,4 +1,4 @@
-﻿using MyApp.Repository.BASE;
+﻿using MyApp.Models.BASE;
 
 namespace MyApp.Models
 {

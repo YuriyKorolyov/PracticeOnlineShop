@@ -27,10 +27,11 @@ namespace MyApp.Controllers
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="CartController"/>.
         /// </summary>
-        /// <param name="cartService">Репозиторий для работы с корзиной.</param>
-        /// <param name="productService">Репозиторий для работы с продуктами.</param>
-        /// <param name="userService">Репозиторий для работы с пользователями.</param>
-        /// <param name="mapper">Интерфейс для маппинга объектов.</param>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
+        /// <param name="cartService">Сервис для работы с корзинами.</param>
+        /// <param name="productService">Сервис для работы с продуктами.</param>
+        /// <param name="userService">Сервис для работы с пользователями.</param>
+        /// <param name="mapper">Маппер для преобразования между DTO и сущностями.</param>
         public CartController(
             IUnitOfWork unitOfWork,
             ICartService cartService, 

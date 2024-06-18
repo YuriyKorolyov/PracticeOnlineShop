@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Dto.Read;
@@ -14,6 +15,7 @@ namespace MyApp.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OrdersController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -26,6 +28,7 @@ namespace MyApp.Controllers
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="OrdersController"/>.
         /// </summary>
+        /// <param name="unitOfWork">Unit of Work для управления транзакциями и сохранениями.</param>
         /// <param name="orderService">Репозиторий для работы с заказами.</param>
         /// <param name="cartService">Репозиторий для работы с корзиной.</param>
         /// <param name="productService">Репозиторий для работы с продуктами.</param>
@@ -94,6 +97,12 @@ namespace MyApp.Controllers
             return Ok(order);
         }
 
+        /// <summary>
+        /// Создает новый заказ на основе содержимого корзины пользователя.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя, для которого создается заказ.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результат операции и созданный заказ.</returns>
         [HttpPost]
         public async Task<ActionResult<OrderReadDto>> CreateOrderAsync([FromQuery] int userId, CancellationToken cancellationToken)
         {
@@ -166,6 +175,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{orderId}")]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> DeleteOrderAsync(int orderId, CancellationToken cancellationToken)
         {
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
