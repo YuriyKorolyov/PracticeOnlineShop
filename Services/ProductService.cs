@@ -12,11 +12,11 @@ namespace MyApp.Services
     /// <typeparam name="Product">Тип сущности продукта.</typeparam>
     public class ProductService : BaseService<Product>, IProductService
     {
-        private readonly IBaseRepository<Review> _reviewRepository;
+        private readonly IReviewService _reviewService;
 
-        public ProductService(IBaseRepository<Review> reviewRepository, IBaseRepository<Product> repository) : base(repository)
+        public ProductService(IReviewService reviewService, IBaseRepository<Product> repository) : base(repository)
         {
-            _reviewRepository = reviewRepository;
+            _reviewService = reviewService;
         }
 
         /// <summary>
@@ -42,10 +42,9 @@ namespace MyApp.Services
         /// <returns>Рейтинг продукта.</returns>
         public async Task<decimal> GetProductRatingAsync(int id, CancellationToken cancellationToken = default)
         {
-            var ratingData = await _reviewRepository.GetAll()
-                                        .Where(r => r.Product.Id == id)
-                                        .Select(r => r.Rating)
-                                        .ToListAsync(cancellationToken);
+            var ratingData = await _reviewService.GetReviewsOfAProduct(id)
+                .Select(r => r.Rating)
+                .ToListAsync(cancellationToken);
 
             if (ratingData.Count == 0)
                 return 0;
