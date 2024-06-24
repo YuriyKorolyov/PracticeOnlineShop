@@ -53,7 +53,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Список отзывов.</returns>
         [HttpGet]
-        [Authorize(Policy = "RequireAdminOrUserRole")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<ActionResult<IEnumerable<ReviewReadDto>>> GetReviewsAsync(CancellationToken cancellationToken)
         {
             var reviews = await _reviewService.GetAll()
@@ -115,7 +115,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Созданный отзыв.</returns>
         [HttpPost]
-        [Authorize(Policy = "RequireAdminOrUserRole")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<ActionResult> AddReviewAsync([FromBody] ReviewCreateDto reviewDto, CancellationToken cancellationToken)
         {
             if (reviewDto == null)
@@ -144,7 +144,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Обновленный отзыв.</returns>
         [HttpPut("{reviewId}")]
-        [Authorize(Policy = "RequireAdminOrUserRole")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<IActionResult> UpdateReviewAsync(int reviewId, [FromBody] ReviewUpdateDto updatedReview, CancellationToken cancellationToken)
         {
             if (updatedReview == null)
@@ -178,7 +178,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("{reviewId}")]
-        [Authorize(Policy = "RequireAdminOrUserRole")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<IActionResult> DeleteReviewAsync(int reviewId, CancellationToken cancellationToken)
         {
             if (! await _reviewService.ExistsAsync(reviewId, cancellationToken))
@@ -201,7 +201,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("/DeleteReviewsByUser/{userId}")]
-        [Authorize(Policy = "RequireAdminOrUserRole")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<IActionResult> DeleteReviewsByUserAsync(int userId, CancellationToken cancellationToken)
         {
             if (!await _userService.ExistsAsync(userId, cancellationToken))

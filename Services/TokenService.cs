@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using MyApp.Configurations;
+﻿using Microsoft.IdentityModel.Tokens;
 using MyApp.IServices;
 using MyApp.Models;
 using System.IdentityModel.Tokens.Jwt;
@@ -9,30 +7,16 @@ using System.Text;
 
 namespace MyApp.Services
 {
-    /// <summary>
-    /// Сервис для создания JWT токенов.
-    /// </summary>
     public class TokenService : ITokenService
     {
+        private readonly IConfiguration _config;
         private readonly SymmetricSecurityKey _key;
-        private readonly JwtSettings _jwtSettings;
 
-        /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="TokenService"/>.
-        /// </summary>
-        /// <param name="jwtSettings">Настройки JWT.</param>
-        public TokenService(IOptions<JwtSettings> jwtSettings)
+        public TokenService(IConfiguration config)
         {
-            _jwtSettings = jwtSettings.Value;
-            _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SigningKey));
+            _config = config;
+            _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:SigningKey"]));
         }
-
-        /// <summary>
-        /// Создает JWT токен для указанного пользователя и ролей.
-        /// </summary>
-        /// <param name="user">Пользователь, для которого создается токен.</param>
-        /// <param name="roles">Список ролей пользователя.</param>
-        /// <returns>Созданный JWT токен.</returns>
         public string CreateToken(User user, IList<string> roles)
         {
             var claims = new List<Claim>
@@ -51,10 +35,10 @@ namespace MyApp.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.Now.AddDays(_jwtSettings.TokenLifetimeDays),
+                Expires = DateTime.Now.AddDays(7),
                 SigningCredentials = creds,
-                Issuer = _jwtSettings.Issuer,
-                Audience = _jwtSettings.Audience
+                Issuer = _config["JWT:Issuer"],
+                Audience = _config["JWT:Audience"]
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();

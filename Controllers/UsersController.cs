@@ -64,7 +64,7 @@ namespace MyApp.Controllers
         /// <returns>Пользователь.</returns>
         [HttpGet("{userId}")]
         [Authorize]
-        [Authorize(Policy = "RequireAdminOrUserRole")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<ActionResult<UserReadDto>> GetUserByIdAsync(int userId, CancellationToken cancellationToken)
         {
             if (!await _userService.ExistsAsync(userId, cancellationToken))
@@ -108,7 +108,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpPut("{userId}")]
-        [Authorize(Policy = "RequireAdminOrUserRole")]
+        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
         public async Task<IActionResult> UpdateUserAsync(int userId, [FromBody] UserUpdateDto userDto, CancellationToken cancellationToken)
         {
             if (userDto == null)
