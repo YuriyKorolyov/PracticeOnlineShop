@@ -54,7 +54,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>История просмотров пользователя.</returns>
         [HttpGet]
-        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
+        [Authorize(Policy = "RequireAdminOrUserRole")]
         public async Task<ActionResult<IEnumerable<ViewHistoryReadDto>>> GetViewHistoryByUserAsync([FromQuery] int userId, CancellationToken cancellationToken)
         {
             var viewHistory = await _viewHistoryService.GetByUserId(userId)
@@ -74,7 +74,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>История просмотра.</returns>
         [HttpGet("{viewId}")]
-        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
+        [Authorize(Policy = "RequireAdminOrUserRole")]
         public async Task<ActionResult<ViewHistoryReadDto>> GetViewHistoryByIdAsync(int viewId, CancellationToken cancellationToken)
         {
             if (!await _viewHistoryService.ExistsAsync(viewId, cancellationToken))
@@ -115,7 +115,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Созданная запись об истории просмотра.</returns>
         [HttpPost]
-        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
+        [Authorize(Policy = "RequireAdminOrUserRole")]
         public async Task<ActionResult> AddViewHistoryAsync([FromBody] ViewHistoryCreateDto viewDto, CancellationToken cancellationToken)
         {
             if (viewDto == null)
@@ -175,7 +175,7 @@ namespace MyApp.Controllers
         /// <param name="cancellationToken">Токен отмены.</param>
         /// <returns>Результат операции.</returns>
         [HttpDelete("/DeleteViewHistoryByUser/{userId}")]
-        [Authorize(Policy = "RequireAdminRole, RequireUserRole")]
+        [Authorize(Policy = "RequireAdminOrUserRole")]
         public async Task<IActionResult> DeleteViewHistoryByUserAsync(int userId, CancellationToken cancellationToken)
         {
             if (!await _userService.ExistsAsync(userId, cancellationToken))
